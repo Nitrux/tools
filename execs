@@ -1,29 +1,24 @@
 #! /bin/sh
 
-HELP="Usage: ${0##*/} [-h|--help] <binary>"
+set -e
 
-case $1 in
+case "$1" in
 
 	-h|--help)
 
-		printf "$HELP"
+		echo "execs: Print the executable files found in a script."
+		echo "Usage: ${0##*/} [-h|--help] <binary>"
 		exit
 
 	;;
 
 esac
 
-set -e
-
 _e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
 
-
-[ $# -gt 1 ] &&
-	exit 1
-
 [ -f $1 ] &&
-	FILE=$1 ||
-	FILE=/dev/stdin
+	from="$1" ||
+	from=/dev/stdin
 
 # -- Binaries match the following rules:
 # -- They are the first word in a line.
@@ -32,8 +27,8 @@ _e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
 # -- They come after a "$(" construct.
 # -- Their names start with "/", "./" or "../".
 
-BINS=$(awk '{ for (i = 1; i <= NF; i++) { print $i } }' $FILE | sort | uniq | sed 's/$(//g; s/`//g; /^#/d; /^-/d; /^+/d; s/\$.[a-zA-Z0-9].*//g; /^$/d;')
+bins=$(awk '{ for (i = 1; i <= NF; i++) { print $i } }' $from | sort | uniq | sed 's/\$(//g; s/`//g; /^#/d; /^-/d; /^+/d; s/\$.[a-zA-Z0-9].*//g; /^$/d;')
 
-for x in $BINS; do
+for x in $bins; do
 	readlink -f $(which - "$x")
 done 2> /dev/null
