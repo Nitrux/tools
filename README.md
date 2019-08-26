@@ -1,2 +1,3 @@
-# synth
-ISO image synthesizer.
+# tools
+
+Utilery for our build environments.

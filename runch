@@ -1,0 +1,84 @@
+#! /bin/sh
+
+HELP="Usage: ${0##*/} [-h|--help] <directory> <command> [command arguments]"
+
+case $1 in
+
+	-h|--help)
+
+		printf "$HELP"
+		exit
+
+	;;
+
+esac
+
+set -e
+
+_e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
+
+
+# -- Helper functions.
+
+clean () {
+
+	# -- Clean the system mountpoints.
+
+	umount -f \
+		$CHROOT_DIR/proc \
+		$CHROOT_DIR/sys \
+		$CHROOT_DIR/dev \
+		$CHROOT_DIR/run \
+		$CHROOT_DIR/tmp
+
+}
+
+
+# -- Handle the arguments.
+
+[ $# -lt 2 ] &&
+	_e "Too few arguments."
+
+[ -d $1 ] ||
+	_e "'$1' is not a directory."
+
+CHROOT_DIR=$1
+shift
+
+# -- Clean the chroot directory on exit.
+
+trap clean EXIT HUP INT TERM
+
+
+# -- Create the essential mountpoints for the chroot.
+
+mkdir -p \
+	$CHROOT_DIR/proc \
+	$CHROOT_DIR/sys \
+	$CHROOT_DIR/dev \
+	$CHROOT_DIR/run \
+	$CHROOT_DIR/tmp
+
+mount -t proc -o nosuid,noexec,nodev . $CHROOT_DIR/proc
+mount -t sysfs -o nosuid,noexec,nodev,ro . $CHROOT_DIR/sys
+mount -t devtmpfs -o mode=0755,nosuid . $CHROOT_DIR/dev
+mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid . $CHROOT_DIR/tmp
+mount --bind /run $CHROOT_DIR/run
+
+
+# -- Allow network access.
+
+[ -f /etc/resolv.conf ] && {
+	mkdir -p $CHROOT_DIR/etc
+	cp $(readlink -f /etc/resolv.conf) $CHROOT_DIR/etc/resolv.conf
+}
+
+
+# -- Run the command in the chroot.
+
+[ -f "$1" -a -x "$1" ] && {
+	cp $1 $CHROOT_DIR/
+	chroot $CHROOT_DIR /$@
+	rm -r $CHROOT_DIR/$1
+} ||
+	chroot $CHROOT_DIR $@

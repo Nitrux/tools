@@ -1,0 +1,75 @@
+#! /bin/sh
+
+
+# -- Exit on errors.
+
+set -e
+
+_e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
+
+
+# -- Args: REPOSITORY, TAG, TOKEN.
+
+_get_manifest () {
+	curl -f -s \
+		-H "Authorization: Bearer $3" \
+		-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+		https://index.docker.io/v2/$1/manifests/$2
+}
+
+
+# -- Args: DIGEST, REPOSITORY, TOKEN.
+
+_pull_layer () {
+	echo "Downloading $1."
+	curl -f -# -OL \
+		-H "Authorization: Bearer $3" \
+		-H "Accept: application/vnd.docker.image.rootfs.diff.tar.gzip" \
+		https://index.docker.io/v2/$2/blobs/$1
+}
+
+
+# -- Args: REPOSITORY, TOKEN. ==> Reads a manifest from stdin.
+
+_pull_layers () {
+	jq -r .layers[].digest | while read __d; do _pull_layer $__d $1 $2; done
+}
+
+
+# -- Args: DOWNLOAD_DIR, REPOSITORY, TAG, TOKEN.
+
+_pull_dh () {
+	cd $1
+
+	_get_manifest $2 $3 $4 | _pull_layers $2 $4
+
+	for __f in *; do
+		tar --force-local -xf $__f
+		rm $__f
+	done
+}
+
+
+# -- Process the request.
+
+TAG=${2##*:}
+IMG=${2%%:*}
+OWNER=${IMG%%/*}
+OUTDIR=$1
+
+[ "$IMG" ] ||
+	_e "No image provided."
+
+[ -d "$OUTDIR" ] ||
+	_e "'$OUTDIR' is not a directory."
+
+[ -z "$TAG" -o "$TAG" = "$IMG" ] && TAG=latest
+[ -z "$OWNER" -o "$OWNER" = "$IMG" ] && IMG="library/$IMG"
+
+echo "Trying to pull $IMG:$TAG"
+
+while [ ! "$TOKEN" ]; do
+	TOKEN=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$IMG:pull" | jq -r .token)
+done
+
+_pull_dh $OUTDIR $IMG $TAG $TOKEN

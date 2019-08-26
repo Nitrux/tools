@@ -1,0 +1,115 @@
+#! /bin/sh
+
+
+# -- Exit on error.
+
+set -e
+
+_e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
+
+
+# -- Help text.
+
+help="Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] <directory> <output>"
+
+
+# -- Option parsing.
+
+while [ $# -gt 2 ]; do
+	case $1 in
+
+		-V|--label)
+			volid=$2
+			shift 2
+		;;
+
+		-g|--grub-cfg)
+			grub_cfgs="${grub_cfgs:+$grub_cfgs }$(readlink -f $2)"
+			shift 2
+		;;
+
+		-t|--grub-theme)
+			grub_themes="${grub_themes:+$grub_themes }$(readlink -f $2)"
+			shift 2
+		;;
+
+		-h|--help)
+			printf "$help"
+			exit 0
+		;;
+
+		-*|--*)
+			_e "Unknown option '$1'."
+		;;
+
+	esac
+done
+
+
+# -- Check the command line.
+
+[ -d $1 ] ||
+	-e "'$1' is not a directory."
+
+[ $2 ] ||
+	_e "No output specified."
+
+
+# -- Copy the configuration files.
+
+[ ${#grub_cfgs} -gt 0 ] && {
+	mkdir -p $1/boot/grub
+	cp $grub_cfgs $1/boot/grub
+}
+
+
+# -- Copy the themes.
+
+[ ${#grub_themes} -gt 0 ] && {
+	mkdir -p $1/boot/grub/themes
+	cp -r $grub_themes $1/boot/grub/themes
+}
+
+
+# -- Build the image.
+
+tmp=$(mktemp -d)
+grub_img=$tmp/bootx64.efi
+efi_img=$tmp/efi_img
+
+grub-mkstandalone \
+	--compress=xz \
+	-O x86_64-efi \
+	-o $grub_img
+
+size=$(( $(stat -c %s $grub_img) / 1024 + 511))
+
+export MTOOLS_SKIP_CHECK=1
+mkfs.vfat -C $efi_img $size
+
+mmd \
+	-i $efi_img \
+	::/efi \
+	::/efi/boot
+
+mcopy \
+	-i $efi_img \
+	$grub_img \
+	::/efi/boot
+
+xorriso -as mkisofs \
+	-V "$volid" \
+	-r -J -l \
+	-iso-level 3 \
+	-joliet-long \
+	-no-emul-boot \
+	-eltorito-alt-boot \
+	-append_partition 2 0xef $efi_img \
+	-e --interval:appended_partition_2:all:: \
+	-partition_cyl_align all \
+	-partition_offset 16 \
+	-o $2 $1
+
+# TODO: Reenable this flag in the above command
+# when the Manjaro migration gets done.
+#	--mbr-force-bootable \

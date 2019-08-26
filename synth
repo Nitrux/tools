@@ -1,0 +1,236 @@
+#! /bin/sh
+
+# -- Exit on errors.
+
+set -e
+
+_e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
+
+
+# -- Functions.
+
+_get_k () { printf "$SETTINGS" | grep "^$1" | cut -d ' ' -f 2-; }
+
+_get_s_k () {
+	local key=$1
+
+	while shift; do
+		[ "$1" == $key ] && printf "$@" | cut -d '"' -f 2 && return
+	done
+}
+
+
+_pull () {
+	[ $# -lt 2 ] &&
+		_e "No SYSTEM.BASE was found in '$INPUT'. Unable to continue."
+
+	local tmp=$(mktemp)
+
+	case $2 in
+
+		@URL:*) wget -qO $tmp "${2#@URL:}"; tar xf $tmp -C $1;;
+		@LOCAL:*) tar xf $2 -C $1;;
+		*) pull $@;;
+
+	esac
+}
+
+
+_pm () {
+	case $1 in
+		install)
+			case $2 in
+				pacman) echo "pacman --noconfirm -S";;
+				apt) echo "apt -y install";;
+				yum) echo "yum -y install";;
+				apk) echo "apk add";;
+
+			esac
+		;;
+
+		update)
+			case $2 in
+				pacman) echo "pacman --noconfirm -Syu";;
+				apt) echo "apt -y upgrade";;
+				yum) echo "yum -y upgrade";;
+				apk) echo "apk update";;
+			esac
+		;;
+	esac
+}
+
+
+_pkg_op () {
+	(
+		export PATH="$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+		runch $@
+	)
+
+	rm -rf \
+		$1/var/cache/apt/archives/* \
+		$1/var/cache/pacman/pkg/* \
+		$1/var/cache/yum/* \
+		$1/var/cache/apk/*
+}
+
+
+_set_updates_url () {
+	[ $# -gt 1 ] ||
+		echo "No SYSTEM.UPDATES_URL was set in '$INPUT'. znx will not be able to update this image."
+
+	printf "$2\n" > $1/.INFO
+}
+
+
+_copy () {
+	src_p=$1
+	dst_p=$2
+	shift 2
+
+	for a in $@; do
+		src=$src_p/${a#:*}
+		dst=$dst_p/${a%*:}
+
+		# -- Create parent directories in destination.
+
+		[ -d $dst_p/${dst%*/} ] ||
+			mkdir -p $dst_p/${dst%*/}
+
+		cp -r $src_p/$src $dst_p/$dst
+	done
+}
+
+
+# -- Start the build process.
+
+[ -f "$1" ] ||
+	_e "'$1' is not a file."
+
+[ $# -gt 2 ] ||
+	_e "Bad command. An input and an optional output is expected."
+
+
+# -- Read the configuration file.
+
+readonly SETTINGS=$(sed -E '
+/^[ \t]*(#|$)/d
+
+:d N
+
+/(;|,)$/ b d
+s/(;|,)\n[\t]*/ /g
+
+/[A-Z0-9_][ \t]*$/ b d
+s/[ \t]*\n[ \t]*/ /g
+' < $1)
+
+
+# -- Setup the build.
+
+SQFS=rootfs.sfs
+TMP_ROOTFS=$(mktemp -d)
+TMP_ISODIR=$(mktemp -d)
+INPUT=$1
+OUTPUT=${2:-${1%.th}.iso}
+
+
+# -- Bootstrap $TMP_ROOTFS.
+
+_pull \
+	$TMP_ROOTFS \
+	"$(_get_k SYSTEM.BASE)"
+
+
+# -- Compose the desired root filesystem.
+
+system_pm=$(_get_k SYSTEM.PACKAGE_MANAGER)
+system_c_pkgs=$(_get_k SYSTEM.CRITICAL_PACKAGES)
+system_pkgs=$(_get_k SYSTEM.PACKAGES)
+
+[ "$system_pm" ] && {
+
+	# -- Update the system before installing anything.
+
+	_pkg_op \
+		$TMP_ROOTFS \
+		$(_pm update $system_pm)
+
+
+	# -- Install the critical packages, if specified.
+
+	[ "$system_c_pkgs" ] &&
+		_pkg_op \
+		$TMP_ROOTFS \
+		$(_pm install $system_pm) \
+		$system_c_pkgs
+
+
+	# -- Update again, after critical packages installation.
+
+	_pkg_op \
+		$TMP_ROOTFS \
+		$(_pm update $system_pm)
+
+
+	# -- Install regular packages, if specified.
+
+	[ "$system_pkgs" ] &&
+		_pkg_op \
+		$TMP_ROOTFS \
+		$(_pm install $system_pm) \
+		$system_pkgs
+
+}
+
+
+# -- Create the .INFO file needed for znx.
+
+_set_updates_url \
+	$TMP_ISODIR \
+	"$(_get_k SYSTEM.UPDATES_URL)"
+
+
+# -- Copy the kernels, initramfs and GRUB configuration files.
+
+_copy \
+	$TMP_ROOTFS \
+	$ISO_DIR \
+	$(_get BOOTLOADER.KERNELS) \
+	$(_get BOOTLOADER.INITRAMFS) \
+	$(_get BOOTLOADER.FILES) \
+	$(_get BOOTLOADER.THEMES)
+
+
+# -- Compress the root filesystem.
+
+mksquashfs \
+	$TMP_ROOTFS \
+	$TMP_ISODIR/$SQFS \
+	-b 1M \
+	-comp xz \
+	-no-progress
+
+
+# -- Generate the ISO image.
+
+mkiso \
+	$TMP_ISODIR \
+	$OUTPUT
+
+
+# -- Generate the zsync file.
+
+zsyncmake \
+	$OUTPUT \
+	-u "$(_get_k SYSTEM.UPDATES_URL)" \
+	-o $OUTPUT.zsync
+
+
+# -- Generate the SHA256 hash.
+
+sha256sum $OUTPUT > $OUTPUT.sha256sum
+
+
+# -- Notify the user.
+
+echo "Successfully generated '$OUTPUT'."

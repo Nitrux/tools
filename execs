@@ -1,0 +1,39 @@
+#! /bin/sh
+
+HELP="Usage: ${0##*/} [-h|--help] <binary>"
+
+case $1 in
+
+	-h|--help)
+
+		printf "$HELP"
+		exit
+
+	;;
+
+esac
+
+set -e
+
+_e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
+
+
+[ $# -gt 1 ] &&
+	exit 1
+
+[ -f $1 ] &&
+	FILE=$1 ||
+	FILE=/dev/stdin
+
+# -- Binaries match the following rules:
+# -- They are the first word in a line.
+# -- They come after a "`" character.
+# -- They come after a "|" character.
+# -- They come after a "$(" construct.
+# -- Their names start with "/", "./" or "../".
+
+BINS=$(awk '{ for (i = 1; i <= NF; i++) { print $i } }' $FILE | sort | uniq | sed 's/$(//g; s/`//g; /^#/d; /^-/d; /^+/d; s/\$.[a-zA-Z0-9].*//g; /^$/d;')
+
+for x in $BINS; do
+	readlink -f $(which - "$x")
+done 2> /dev/null

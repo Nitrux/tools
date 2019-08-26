@@ -1,0 +1,56 @@
+#! /bin/sh
+
+HELP="Usage: ${0##*/} [-h|--help] <binary> <directory>"
+
+case $1 in
+
+	-h|--help)
+
+		printf "$HELP"
+		exit
+
+	;;
+
+esac
+
+set -e
+
+_e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
+
+
+# -- Check if the paths are valid.
+
+[ $# -ne 2 ] &&
+	_e "Wrong number of arguments."
+
+[ -f $(which $1) ] ||
+	_e "Not a vaild binary: $1"
+
+[ ! -d $2 ] &&
+	mkdir -p $2
+
+
+# -- Copy the binary.
+
+[ -f $1 ] && {
+	b=$1
+	mkdir -p $2/bin
+	cp $b $2/bin/$(basename $b)
+} || {
+	b=$(which $1)
+	mkdir -p $2/$(dirname $b)
+	cp $b $2/$b
+}
+
+
+# -- Get the library dependencies.
+
+l=$(ldd $b | awk 'BEGIN { ORS=" " } $1 ~/^\//{ print $1 } $3~/^\//{ print $3 }' | sed 's/,$/\n/')
+
+
+# -- Copy the dependencies.
+
+for x in $l; do
+	mkdir -p $2/$(dirname $x)
+	cp -u $x $2/$x
+done
