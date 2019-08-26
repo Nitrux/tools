@@ -1,19 +1,18 @@
 #! /bin/sh
 
-HELP="Usage: ${0##*/} [-h|--help] <directory> <command> [command arguments]"
+set -e
 
-case $1 in
+case "$1" in
 
 	-h|--help)
 
-		printf "$HELP"
+		echo "runch: Run commands in a chroot."
+		echo "Usage: ${0##*/} [-h|--help] <directory> <command> [command arguments]"
 		exit
 
 	;;
 
 esac
-
-set -e
 
 _e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
 
@@ -39,10 +38,10 @@ clean () {
 [ $# -lt 2 ] &&
 	_e "Too few arguments."
 
-[ -d $1 ] ||
+[ -d "$1" ] ||
 	_e "'$1' is not a directory."
 
-CHROOT_DIR=$1
+CHROOT_DIR="$1"
 shift
 
 # -- Clean the chroot directory on exit.

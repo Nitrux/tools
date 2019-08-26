@@ -1,34 +1,28 @@
 #! /bin/sh
 
-HELP="Usage: ${0##*/} [-h|--help] [AppImage]"
+set -e
 
-case $1 in
+case "$1" in
 
 	-h|--help)
 
-		printf "$HELP"
+		echo "appimage-wrapper: Run AppImages in containers."
+		echo "Usage: ${0##*/} [-h|--help] [AppImage]"
 		exit
 
 	;;
 
 esac
 
-set -e
-
 _e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
 
-[ $#3 -eq 0 ] &&
+[ $# -eq 0 ] &&
 	_e "Nothing to wrap."
 
-NAME=$1
-BASENAME=$(basename $1)
+NAME="$1"
+TMP_DIR=$(mktemp -d)
 shift
 
-# -- Keep a cache.
-
-[ ! -f /tmp/$BASENAME/AppRun ] && {
-	./$NAME --appimage-extract > /dev/null 2>&1
-	mv ./squashfs-root/ /tmp/$BASENAME
-}
-
-/tmp/$BASENAME/AppRun $@
+./$NAME --appimage-extract > /dev/null 2>&1
+mv ./squashfs-root/ $TMP_DIR
+$TMP_DIR/AppRun $@
