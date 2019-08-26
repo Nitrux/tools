@@ -6,7 +6,7 @@ case "$1" in
 
 	-h|--help)
 
-		echo "appimage-wrapper: Run AppImages in containers."
+		echo "${0##*/}: Run AppImages in containers."
 		echo "Usage: ${0##*/} [-h|--help] [AppImage]"
 		exit
 

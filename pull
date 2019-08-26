@@ -6,7 +6,7 @@ case "$1" in
 
 	-h|--help)
 
-		echo "pull: Pull an image from DockerHub into a directory."
+		echo "${0##*/}: Pull an image from DockerHub into a directory."
 		echo "Usage: pull <directory> <image>"
 		exit
 

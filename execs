@@ -6,7 +6,7 @@ case "$1" in
 
 	-h|--help)
 
-		echo "execs: Print the executable files found in a script."
+		echo "${0##*/}: Print the executable files found in a script."
 		echo "Usage: ${0##*/} [-h|--help] <binary>"
 		exit
 

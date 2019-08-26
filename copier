@@ -6,7 +6,7 @@ case $1 in
 
 	-h|--help)
 
-		echo "copier: Copy a binary and its dependencies to a directory."
+		echo "${0##*/}: Copy a binary and its dependencies to a directory."
 		echo "Usage: ${0##*/} [-h|--help] <binary> <directory>"
 		exit
 

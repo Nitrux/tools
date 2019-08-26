@@ -29,7 +29,7 @@ while [ $# -gt 2 ]; do
 		;;
 
 		-h|--help)
-			echo "mkiso: Create an ISO image."
+			echo "${0##*/}: Create an ISO image."
 			echo "Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] <directory> <output>"
 			exit
 		;;

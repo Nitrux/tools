@@ -1,8 +1,18 @@
 #! /bin/sh
 
-# -- Exit on errors.
-
 set -e
+
+case "$1" in
+
+	-h|--help)
+
+		echo "${0##*/}: Generate the ISO image described in the given file."
+		echo "Usage: ${0##*/} <synth-file>"
+		exit
+
+	;;
+
+esac
 
 _e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
 
