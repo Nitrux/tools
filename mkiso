@@ -8,11 +8,6 @@ set -e
 _e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
 
 
-# -- Help text.
-
-help="Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] <directory> <output>"
-
-
 # -- Option parsing.
 
 while [ $# -gt 2 ]; do
@@ -34,13 +29,12 @@ while [ $# -gt 2 ]; do
 		;;
 
 		-h|--help)
-			printf "$help"
-			exit 0
+			echo "mkiso: Create an ISO image."
+			echo "Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] <directory> <output>"
+			exit
 		;;
 
-		-*|--*)
-			_e "Unknown option '$1'."
-		;;
+		-*) _e "Unknown option '$1'.";;
 
 	esac
 done
@@ -48,16 +42,19 @@ done
 
 # -- Check the command line.
 
-[ -d $1 ] ||
-	-e "'$1' is not a directory."
+[ $# -eq 2 ] ||
+	_e "Bad command line. Wrong number of arguments."
 
-[ $2 ] ||
+[ -d "$1" ] ||
+	_e "'$1' is not a directory."
+
+[ "$2" ] ||
 	_e "No output specified."
 
 
 # -- Copy the configuration files.
 
-[ ${#grub_cfgs} -gt 0 ] && {
+[ "${#grub_cfgs}" ] && {
 	mkdir -p $1/boot/grub
 	cp $grub_cfgs $1/boot/grub
 }
@@ -65,7 +62,7 @@ done
 
 # -- Copy the themes.
 
-[ ${#grub_themes} -gt 0 ] && {
+[ "${#grub_themes}" ] && {
 	mkdir -p $1/boot/grub/themes
 	cp -r $grub_themes $1/boot/grub/themes
 }
@@ -77,10 +74,16 @@ tmp=$(mktemp -d)
 grub_img=$tmp/bootx64.efi
 efi_img=$tmp/efi_img
 
-grub-mkstandalone \
-	--compress=xz \
+grub-mkimage \
+	-C xz \
 	-O x86_64-efi \
-	-o $grub_img
+	-o $grub_img \
+	-p /boot/grub \
+	boot linux search normal configfile \
+	part_gpt btrfs ext2 fat iso9660 loopback \
+	test keystatus gfxmenu regexp probe \
+	efi_gop efi_uga all_video gfxterm font \
+	echo read ls cat png jpeg halt reboot
 
 size=$(( $(stat -c %s $grub_img) / 1024 + 511))
 
@@ -108,8 +111,4 @@ xorriso -as mkisofs \
 	-e --interval:appended_partition_2:all:: \
 	-partition_cyl_align all \
 	-partition_offset 16 \
-	-o $2 $1
-
-# TODO: Reenable this flag in the above command
-# when the Manjaro migration gets done.
-#	--mbr-force-bootable \
+	-o "$2" "$1"
