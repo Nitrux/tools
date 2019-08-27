@@ -114,7 +114,7 @@ pkg () {
 
 boo () {
 	for key in $@; do
-		for item in $(get_k $key)
+		for item in $(get_k $key); do
 
 			src=${item#:*}
 			dst=${item%*:}
