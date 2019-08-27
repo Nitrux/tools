@@ -80,4 +80,4 @@ mount --bind /run $CHROOT_DIR/run
 	chroot $CHROOT_DIR /$@
 	rm -r $CHROOT_DIR/$1
 } ||
-	chroot $CHROOT_DIR $@
+	chroot $CHROOT_DIR /bin/sh -c $@
