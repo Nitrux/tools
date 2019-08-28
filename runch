@@ -58,12 +58,14 @@ mkdir -p \
 	$CHROOT_DIR/run \
 	$CHROOT_DIR/tmp
 
+mount --bind $CHROOT_DIR $CHROOT_DIR
 mount -t proc -o nosuid,noexec,nodev . $CHROOT_DIR/proc
 mount -t sysfs -o nosuid,noexec,nodev,ro . $CHROOT_DIR/sys
 mount -t devtmpfs -o mode=0755,nosuid . $CHROOT_DIR/dev
+mount -t devpts -o mode=0620,gid=5,nosuid,noexec . $CHROOT_DIR/dev/pts
+mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev . $CHROOT_DIR/dev/shm
 mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid . $CHROOT_DIR/tmp
 mount --bind /run $CHROOT_DIR/run
-mount --bind $CHROOT_DIR $CHROOT_DIR
 
 
 # -- Allow network access.
@@ -76,9 +78,4 @@ mount --bind $CHROOT_DIR $CHROOT_DIR
 
 # -- Run the command in the chroot.
 
-[ -f "$1" -a -x "$1" ] && {
-	cp $1 $CHROOT_DIR/
-	chroot $CHROOT_DIR /$@
-	rm -r $CHROOT_DIR/$1
-} ||
-	chroot $CHROOT_DIR $@
+SHELL=/bin/sh unshare --fork --pid chroot $CHROOT_DIR -- $@
