@@ -23,12 +23,8 @@ clean () {
 
 	# -- Clean the system mountpoints.
 
-	umount -f \
-		$CHROOT_DIR/proc \
-		$CHROOT_DIR/sys \
-		$CHROOT_DIR/dev \
-		$CHROOT_DIR/run \
-		$CHROOT_DIR/tmp
+	umount -fR \
+		$CHROOT_DIR
 
 }
 
@@ -78,4 +74,4 @@ mount --bind /run $CHROOT_DIR/run
 
 # -- Run the command in the chroot.
 
-SHELL=/bin/sh unshare --fork --pid chroot $CHROOT_DIR -- $@
+SHELL=/bin/sh unshare --fork --pid chroot $CHROOT_DIR $@
