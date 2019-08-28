@@ -63,6 +63,7 @@ mount -t sysfs -o nosuid,noexec,nodev,ro . $CHROOT_DIR/sys
 mount -t devtmpfs -o mode=0755,nosuid . $CHROOT_DIR/dev
 mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid . $CHROOT_DIR/tmp
 mount --bind /run $CHROOT_DIR/run
+mount --bind $CHROOT_DIR $CHROOT_DIR
 
 
 # -- Allow network access.
@@ -80,4 +81,4 @@ mount --bind /run $CHROOT_DIR/run
 	chroot $CHROOT_DIR /$@
 	rm -r $CHROOT_DIR/$1
 } ||
-	chroot $CHROOT_DIR /bin/sh -c $@
+	chroot $CHROOT_DIR $@
