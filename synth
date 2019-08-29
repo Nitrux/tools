@@ -20,27 +20,27 @@ _e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
 # -- Setup the build.
 
 root_sfs=rootfs.sfs
-tmp_root=$(pwd)/.tmp_root
-iso_dir=$(pwd)/.iso_dir
+tmp_root=$(mktemp -d) #$(pwd)/.tmp_root
+iso_dir=$(mktemp -d) #$(pwd)/.iso_dir
 input="$1"
 output="${2:-${1%.th}.iso}"
 
 mkdir -p $tmp_root $iso_dir
 
 desc=$(sed -E '
-/^[ \t]*#/d
-:r N
-/(;|,)$/ b r
-/[A-Z0-9_][ \t]*$/ b r
-s/(;|,)\n[ \t]*/ /g
-s/[ \t]*\n[ \t]*/ /g
-s/^[ \t]*//
-' < $input)
+/^[ \t]*(#|$)/d
+s/[ \t]*$//
+:x N
+/,$/ b x
+/[A-Z_]$/ b x
+s/,\n[ \t]*/ /g
+s/([A-Z_])\n[ \t]*/\1 /g
+' $input)
 
 
 # -- Functions.
 
-get_k () { echo "$desc" | grep "^$1" | cut -d ' ' -f 2-; }
+get_k () { echo "$desc" | grep "^[ \t]*$1" | cut -d ' ' -f 2-; }
 
 
 bst () {
