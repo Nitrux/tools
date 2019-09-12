@@ -114,8 +114,8 @@ boo () {
 	for key in $@; do
 		for item in $(get_k $key); do
 
-			src=${item#:*}
-			dst=${item%*:}
+			src=${item%:*}
+			dst=${item#*:}
 
 			mkdir -p $iso_dir/${dst%*/}
 			cp -ur $tmp_root/$src $iso_dir/$dst
@@ -127,18 +127,18 @@ boo () {
 
 # -- Start the build.
 
-bst SYSTEM.BASE
-upd SYSTEM.UPDATES_URL
+bst BASE
+upd UPDATES_URL
 
 pkg \
-	SYSTEM.PACKAGE_MANAGER \
-	SYSTEM.PACKAGES
+	PACKAGE_MANAGER \
+	PACKAGES
 
 boo \
-	BOOTLODER.FILES \
-	BOOTLOADER.THEME \
-	BOOTLOADER.INITRAMFS \
-	BOOTLOADER.KERNELS
+	GRUB_FILES \
+	GRUB_THEME \
+	INITRAMFS \
+	KERNELS
 
 
 mksquashfs \
