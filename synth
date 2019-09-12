@@ -7,7 +7,7 @@ case "$1" in
 	-h|--help)
 
 		echo "${0##*/}: Generate the ISO image described in the given file."
-		echo "Usage: ${0##*/} <synth-file> [output]"
+		echo "Usage: ${0##*/} <FILE> [OUTPUT]"
 		exit
 
 	;;
@@ -96,7 +96,9 @@ pkg () {
 			return
 		;;
 
-		?*) _e "Unsupported package manager '$1'. Aborting.";;
+		?*)
+			_e "Unsupported package manager '$pm'. Aborting."
+		;;
 	esac
 
 	runch $tmp_root $pm_u
