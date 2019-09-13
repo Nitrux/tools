@@ -41,14 +41,9 @@ b=$(which "$1")
 }
 
 
-# -- Get the library dependencies.
-
-libs=$(ldd $b | awk 'BEGIN { ORS=" " } $1 ~/^\//{ print $1 } $3~/^\//{ print $3 }' | sed 's/,$/\n/')
-
-
 # -- Copy the dependencies.
 
-for l in $libs; do
+ldd $b | awk '$1 ~/^\//{ print $1 } $3~/^\//{ print $3 }' | while read l; do
 	mkdir -p $2/${l%/*}
 	cp -u $l $2/$l
 done
