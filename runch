@@ -6,8 +6,8 @@ case "$1" in
 
 	-h|--help)
 
-		echo "${0##*/}: Run commands in a chroot."
-		echo "Usage: ${0##*/} [-h|--help] <directory> <command> [command arguments]"
+		echo "${0##*/}: Run commands or script in a chroot."
+		echo "Usage: ${0##*/} [-h|--help] <directory> <command|-s shell script> [command arguments]"
 		exit
 
 	;;
@@ -74,4 +74,13 @@ mount --bind /run $CHROOT_DIR/run
 
 # -- Run the command in the chroot.
 
-SHELL=/bin/sh unshare --fork --pid chroot $CHROOT_DIR $@
+
+[ "$2" == "-s" ] && {
+	script="$3"
+	shift 2
+	cp "$script" $CHROOT_DIR
+	chmod +x $CHROOT_DIR/${script##*/}
+	SHELL=/bin/sh unshare --fork --pid chroot $CHROOT_DIR /${script##*/}
+	rm -r $CHROOT_DIR/${script##*/}
+} ||
+	SHELL=/bin/sh unshare --fork --pid chroot $CHROOT_DIR $@
