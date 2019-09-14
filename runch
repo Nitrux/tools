@@ -75,8 +75,8 @@ mount --bind /run $CHROOT_DIR/run
 # -- Run the command in the chroot.
 
 
-[ "$2" == "-s" ] && {
-	script="$3"
+[ "$1" == "-s" ] && {
+	script="$2"
 	shift 2
 	cp "$script" $CHROOT_DIR
 	chmod +x $CHROOT_DIR/${script##*/}
