@@ -14,26 +14,7 @@ case "$1" in
 
 esac
 
-_e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
-
-
-# -- Setup the build.
-
-root_sfs=rootfs.sfs
-tmp_root=$(mktemp -d $(pwd)/.tmp.XXXX)
-iso_dir=$(mktemp -d $(pwd)/.tmp.XXXX)
-input="$1"
-output="${2:-${1%.th}.iso}"
-
-desc=$(sed -E '
-/^[ \t]*(#|$)/d
-s/[ \t]*$//
-:x N
-/,$/ b x
-/[A-Z_]$/ b x
-s/,\n[ \t]*/ /g
-s/([A-Z_])\n[ \t]*/\1 /g
-' $input)
+_e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
 # -- Functions.
@@ -125,6 +106,23 @@ boo () {
 		done
 	done
 }
+
+
+# -- Setup the build.
+
+root_sfs=rootfs.sfs
+tmp_root=$(mktemp -d $(pwd)/.tmp.XXXX)
+iso_dir=$(mktemp -d $(pwd)/.tmp.XXXX)
+input="$1"
+output="${2:-${1%.th}.iso}"
+
+[ -f "$input" ] ||
+	_e "'$input' is not a file."
+
+[ -e "$output" ] &&
+	_e "'$output' already exists."
+
+desc=$(sed -E '/^[ \t]*(#|$)/d;s/[ \t]*$//;:x N; /,$/ b x;/[A-Z_]$/ b x;s/,\n[ \t]*/ /g;s/([A-Z_])\n[ \t]*/\1 /g;' $input)
 
 
 # -- Start the build.

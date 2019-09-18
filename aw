@@ -14,7 +14,7 @@ case "$1" in
 
 esac
 
-_e () { printf %b "${0##*/}: \e[31mError:\e[0m $@\n" >&2; exit 1; }
+_e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 [ $# -eq 0 ] &&
 	_e "Nothing to wrap."
