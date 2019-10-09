@@ -16,9 +16,6 @@ esac
 
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
-[ -f $1 ] &&
-	from="$1" ||
-	from=/dev/stdin
 
 # -- Binaries match the following rules:
 # -- They are the first word in a line.
@@ -27,8 +24,38 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 # -- They come after a "$(" construct.
 # -- Their names start with "/", "./" or "../".
 
-bins=$(awk '{ for (i = 1; i <= NF; i++) { print $i } }' $from | sort | uniq | sed 's/\$(//g; s/`//g; /^#/d; /^-/d; /^+/d; s/\$.[a-zA-Z0-9].*//g; /^$/d;')
+{
 
-for x in $bins; do
-	readlink -f $(which - "$x")
+	sed '
+		/^#/d
+		/^$/d
+		s:(:\n:g
+		s:{:\n:g
+		s:`:\n:g
+		s:|:\n:g
+		s:&:\n:g
+		s:;:\n:g
+	' $1 |
+	sort |
+	awk '{ print $1 }' |
+	uniq
+
+} |
+
+while read file; do
+
+	{
+
+		type $file | grep -q \
+			-e builtin \
+			-e keyword \
+			-e function \
+			-e alias \
+		&&
+			continue
+
+		which -- $file
+
+	} || :
+
 done 2> /dev/null
