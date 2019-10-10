@@ -24,24 +24,19 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 # -- They come after a "$(" construct.
 # -- Their names start with "/", "./" or "../".
 
-{
-
-	sed '
-		/^#/d
-		/^$/d
-		s:(:\n:g
-		s:{:\n:g
-		s:`:\n:g
-		s:|:\n:g
-		s:&:\n:g
-		s:;:\n:g
-	' $1 |
-	sort |
-	awk '{ print $1 }' |
-	uniq
-
-} |
-
+sed '
+	/^#/d
+	/^$/d
+	s:(:\n:g
+	s:{:\n:g
+	s:`:\n:g
+	s:|:\n:g
+	s:&:\n:g
+	s:;:\n:g
+' $@ |
+sort |
+awk '{ print $1 }' |
+uniq |
 while read file; do
 
 	{
