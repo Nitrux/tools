@@ -20,9 +20,9 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 	_e "Nothing to wrap."
 
 NAME="$1"
-TMP_DIR=$(mktemp -d)
 shift
 
 ./$NAME --appimage-extract > /dev/null 2>&1
-mv ./squashfs-root/ $TMP_DIR
-$TMP_DIR/AppRun $@
+chmod +x squashfs-root/AppRun
+./squashfs-root/AppRun $@
+rm -rf squashfs-root
