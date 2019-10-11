@@ -25,7 +25,7 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 # -- Copy the binaries.
 
-dest=$1
+d=$1
 
 shift
 
