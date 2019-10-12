@@ -54,7 +54,7 @@ done
 
 # -- Copy the configuration files.
 
-[ "${#grub_cfgs}" ] && {
+[ "$grub_cfgs" ] && {
 	mkdir -p $1/boot/grub
 	cp $grub_cfgs $1/boot/grub
 }
@@ -62,7 +62,7 @@ done
 
 # -- Copy the themes.
 
-[ "${#grub_themes}" ] && {
+[ "$grub_themes" ] && {
 	mkdir -p $1/boot/grub/themes
 	cp -r $grub_themes $1/boot/grub/themes
 }
