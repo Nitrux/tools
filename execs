@@ -24,9 +24,13 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 # -- They come after a "$(" construct.
 # -- Their names start with "/", "./" or "../".
 
+
+# -- Functions.
+
 sed '
 	/^#/d
 	/^$/d
+	s:^[ \t]*::
 	s:(:\n:g
 	s:{:\n:g
 	s:`:\n:g
@@ -34,23 +38,16 @@ sed '
 	s:&:\n:g
 	s:;:\n:g
 ' $@ |
-sort |
 awk '{ print $1 }' |
-uniq |
+sort -u |
 while read file; do
+	type $file | grep -q \
+		-e builtin \
+		-e keyword \
+		-e function \
+		-e alias \
+	&&
+		continue
 
-	{
-
-		type $file | grep -q \
-			-e builtin \
-			-e keyword \
-			-e function \
-			-e alias \
-		&&
-			continue
-
-		which -- $file
-
-	} || :
-
+	which -- $file
 done 2> /dev/null

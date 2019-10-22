@@ -1,5 +1,5 @@
 # tools.
 
-Tools for building ISO images.
+Tools for building our stuff.
 
-`./<command> -h` will give information about any of these programs.
+`./<command> -h` will give you information about any of these programs.
