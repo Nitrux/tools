@@ -6,7 +6,7 @@ case "$1" in
 
 	-h|--help)
 
-		echo "${0##*/}: Print the executable files found in a script."
+		echo "${0##*/}: Print the commands found in a UNIX shell script."
 		echo "Usage: ${0##*/} [-h|--help] <binary>"
 		exit
 
@@ -27,6 +27,20 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 # -- Functions.
 
+_get_path () {
+	while read file; do
+		type $file | grep -q \
+			-e builtin \
+			-e keyword \
+			-e function \
+			-e alias \
+		&&
+			continue
+
+		which -- $file || :
+	done 2> /dev/null
+}
+
 sed '
 	/^#/d
 	/^$/d
@@ -37,17 +51,7 @@ sed '
 	s:|:\n:g
 	s:&:\n:g
 	s:;:\n:g
-' $@ |
+' $@               |
 awk '{ print $1 }' |
-sort -u |
-while read file; do
-	type $file | grep -q \
-		-e builtin \
-		-e keyword \
-		-e function \
-		-e alias \
-	&&
-		continue
-
-	which -- $file
-done 2> /dev/null
+sort -u            |
+_get_path
