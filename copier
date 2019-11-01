@@ -48,7 +48,7 @@ awk '
 sed '
 	/:$/d
 ' |
-uniq |
+sort -u |
 while read l; do
 	mkdir -p $d/${l%/*}
 	cp -u $l $d/$l
