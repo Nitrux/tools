@@ -122,7 +122,17 @@ output="${2:-${1%.th}.iso}"
 [ -e "$output" ] &&
 	_e "'$output' already exists."
 
-desc=$(sed -E '/^[ \t]*(#|$)/d;s/[ \t]*$//;:x N; /,$/ b x;/[A-Z_]$/ b x;s/,\n[ \t]*/ /g;s/([A-Z_])\n[ \t]*/\1 /g;' $input)
+desc=$(
+	sed -E '
+		/^[ \t]*(#|$)/d
+		s/[ \t]*$//
+		:x N
+		/,$/ b x
+		/[A-Z_]$/ b x
+		s/,\n[ \t]*/ /g
+		s/([A-Z_])\n[ \t]*/\1 /g
+	' $input
+)
 
 
 # -- Start the build.
