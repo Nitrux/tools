@@ -7,7 +7,7 @@ case "$1" in
 	-h|--help)
 
 		echo "${0##*/}: Generate the ISO image described in the given file."
-		echo "Usage: ${0##*/} <FILE> [OUTPUT]"
+		echo "Usage: ${0##*/} <input> [output]"
 		exit
 
 	;;
@@ -44,7 +44,7 @@ upd () {
 	sys_u_url=$(get_k $1)
 
 	[ "$sys_u_url" ] || {
-		echo " :: WARNING: 'SYSTEM.UPDATES_URL' was not set in $input."
+		echo " :: WARNING: 'UPDATE_URL' was not set in $input."
 		return
 	}
 
@@ -138,7 +138,7 @@ desc=$(
 # -- Start the build.
 
 bst BASE
-upd UPDATES_URL
+upd UPDATE_URL
 
 pkg \
 	PACKAGE_MANAGER \
@@ -166,7 +166,7 @@ mkiso \
 
 zsyncmake \
 	$output \
-	-u "$(_get_k SYSTEM.UPDATES_URL)" \
+	-u "$(_get_k UPDATE_URL)" \
 	-o $output.zsync
 
 
