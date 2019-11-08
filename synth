@@ -17,7 +17,7 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-# -- Functions.
+#   Functions.
 
 get_k () { echo "$desc" | grep "^[ \t]*$1" | cut -d ' ' -f 2-; }
 
@@ -108,7 +108,7 @@ boo () {
 }
 
 
-# -- Setup the build.
+#   Setup the build.
 
 root_sfs=rootfs.sfs
 tmp_root=$(mktemp -d $(pwd)/.tmp.XXXX)
@@ -135,7 +135,7 @@ desc=$(
 )
 
 
-# -- Start the build.
+#   Start the build.
 
 bst BASE
 upd UPDATE_URL

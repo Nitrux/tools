@@ -17,11 +17,11 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-# -- Helper functions.
+#   Helper functions.
 
 clean () {
 
-	# -- Clean the system mountpoints.
+	#   Clean the system mountpoints.
 
 	umount -fR \
 		$CHROOT_DIR
@@ -29,7 +29,7 @@ clean () {
 }
 
 
-# -- Handle the arguments.
+#   Handle the arguments.
 
 [ $# -lt 2 ] &&
 	_e "Too few arguments."
@@ -40,12 +40,12 @@ clean () {
 CHROOT_DIR="$1"
 shift
 
-# -- Clean the chroot directory on exit.
+#   Clean the chroot directory on exit.
 
 trap clean EXIT HUP INT TERM
 
 
-# -- Create the essential mountpoints for the chroot.
+#   Create the essential mountpoints for the chroot.
 
 mkdir -p \
 	$CHROOT_DIR/proc \
@@ -64,7 +64,7 @@ mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid . $CHROOT_DIR/tmp
 mount --bind /run $CHROOT_DIR/run
 
 
-# -- Allow network access.
+#   Allow network access.
 
 [ -f /etc/resolv.conf ] && {
 	mkdir -p $CHROOT_DIR/etc
@@ -72,7 +72,7 @@ mount --bind /run $CHROOT_DIR/run
 }
 
 
-# -- Run the command in the chroot.
+#   Run the command in the chroot.
 
 
 [ "$1" = "-s" ] && {

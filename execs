@@ -17,15 +17,15 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-# -- Binaries match the following rules:
-# -- They are the first word in a line.
-# -- They come after a "`" character.
-# -- They come after a "|" character.
-# -- They come after a "$(" construct.
-# -- Their names start with "/", "./" or "../".
+#   Binaries match the following rules:
+#   They are the first word in a line.
+#   They come after a "`" character.
+#   They come after a "|" character.
+#   They come after a "$(" construct.
+#   Their names start with "/", "./" or "../".
 
 
-# -- Functions.
+#   Functions.
 
 _get_path () {
 	while read file; do
@@ -37,7 +37,7 @@ _get_path () {
 		&&
 			continue
 
-		which -- $file || :
+		which   $file || :
 	done 2> /dev/null
 }
 

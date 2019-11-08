@@ -1,36 +1,46 @@
 #! /bin/sh
 
 
-# -- Exit on error.
+#   Exit on error.
 
 set -e
 
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-# -- Option parsing.
+#   Option parsing.
 
 while [ $# -gt 2 ]; do
 	case $1 in
 
-		-V|--label)
-			volid=$2
+		-V)
+			LABEL=$2
 			shift 2
 		;;
 
-		-g|--grub-cfg)
-			grub_cfgs="${grub_cfgs:+$grub_cfgs }$(readlink -f $2)"
+		-g)
+			CONFIG_FILES="$CONFIG_FILES $2"
 			shift 2
 		;;
 
-		-t|--grub-theme)
-			grub_themes="${grub_themes:+$grub_themes }$(readlink -f $2)"
+		-t)
+			THEMES="$THEMES $2"
+			shift 2
+		;;
+
+		-u)
+			UPDATE_URL="$2"
+			shift 2
+		;;
+
+		-s)
+			HASH_URL="$2"
 			shift 2
 		;;
 
 		-h|--help)
 			echo "${0##*/}: Create an ISO image."
-			echo "Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] <directory> <output>"
+			echo "Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] <directory> <output>"
 			exit
 		;;
 
@@ -40,7 +50,43 @@ while [ $# -gt 2 ]; do
 done
 
 
-# -- Check the command line.
+#   Generate an ESP.
+#   _mk_efi_img <output>.
+
+_mk_efi_img () {
+	tmp=$(mktemp -d)
+	grub_img=$tmp/bootx64.efi
+	efi_img=$1
+
+	grub-mkimage \
+		-C xz \
+		-O x86_64-efi \
+		-o $grub_img \
+		-p /boot/grub \
+		boot linux search normal configfile \
+		part_gpt btrfs ext2 fat iso9660 loopback \
+		test keystatus gfxmenu regexp probe \
+		efi_gop efi_uga all_video gfxterm font \
+		echo read ls cat png jpeg halt reboot
+
+	size=$(( $(stat -c %s $grub_img) / 1024 + 511))
+
+	export MTOOLS_SKIP_CHECK=1
+	mkfs.vfat -C $efi_img $size
+
+	mmd \
+		-i $efi_img \
+		::/efi \
+		::/efi/boot
+
+	mcopy \
+		-i $efi_img \
+		$grub_img \
+		::/efi/boot
+}
+
+
+#   Check the command line.
 
 [ $# -eq 2 ] ||
 	_e "Bad command line. Wrong number of arguments."
@@ -52,63 +98,46 @@ done
 	_e "No output specified."
 
 
-# -- Copy the configuration files.
+#   Copy the configuration files.
 
-[ "$grub_cfgs" ] && {
+[ "$CONFIG_FILES" ] && {
 	mkdir -p $1/boot/grub
 	cp $grub_cfgs $1/boot/grub
 }
 
 
-# -- Copy the themes.
+#   Copy the themes.
 
-[ "$grub_themes" ] && {
+[ "$THEMES" ] && {
 	mkdir -p $1/boot/grub/themes
 	cp -r $grub_themes $1/boot/grub/themes
 }
 
 
-# -- Build the image.
+#   Create the .INFO file; if needed.
 
-tmp=$(mktemp -d)
-grub_img=$tmp/bootx64.efi
-efi_img=$tmp/efi_img
+[ "$VERSION" ] && echo "$VERSION" >> $1/.INFO
+[ "$HASH_URL" ] && echo "$HASH_URL" >> $1/.INFO
+[ "$UPDATE_URL" ] && echo "$UPDATE_URL" >> $1/.INFO
 
-grub-mkimage \
-	-C xz \
-	-O x86_64-efi \
-	-o $grub_img \
-	-p /boot/grub \
-	boot linux search normal configfile \
-	part_gpt btrfs ext2 fat iso9660 loopback \
-	test keystatus gfxmenu regexp probe \
-	efi_gop efi_uga all_video gfxterm font \
-	echo read ls cat png jpeg halt reboot
 
-size=$(( $(stat -c %s $grub_img) / 1024 + 511))
+#   Build the image.
 
-export MTOOLS_SKIP_CHECK=1
-mkfs.vfat -C $efi_img $size
+ISO_DIR="$1"
+OUTPUT="$2"
+EFI_IMG=$(mktemp)
 
-mmd \
-	-i $efi_img \
-	::/efi \
-	::/efi/boot
-
-mcopy \
-	-i $efi_img \
-	$grub_img \
-	::/efi/boot
+_mk_efi_img $EFI_IMG
 
 xorriso -as mkisofs \
-	-V "$volid" \
+	-V "$LABEL" \
 	-r -J -l \
 	-iso-level 3 \
 	-joliet-long \
 	-no-emul-boot \
 	-eltorito-alt-boot \
-	-append_partition 2 0xef $efi_img \
+	-append_partition 2 0xef $EFI_IMG \
 	-e --interval:appended_partition_2:all:: \
 	-partition_cyl_align all \
 	-partition_offset 16 \
-	-o "$2" "$1"
+	-o "$OUTPUT" "$ISO_DIR"
