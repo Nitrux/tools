@@ -22,6 +22,6 @@ pkgver () {
 build () { :; }
 
 package () {
-	cd $pkgname
+	cd tools
 	cp [a-z]* $pkgdir
 }
