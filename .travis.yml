@@ -1,0 +1,16 @@
+sudo: required
+
+script:
+  - sudo docker run --rm -v $(pwd)/:/build/ -w /build/ archlinux/base makepkg
+
+after_success:
+  - wget -q https://github.com/probonopd/uploadtool/raw/master/upload.sh
+  - export UPLOADTOOL_SUFFIX=$TRAVIS_BRANCH
+  - bash upload.sh *.tar.*
+
+branches:
+  except:
+    - "/^(?i:continuous.*)$/"
+
+notifications:
+  email: false
