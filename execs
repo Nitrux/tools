@@ -37,7 +37,7 @@ _get_path () {
 		&&
 			continue
 
-		which   $file || :
+		which --  $file || :
 	done 2> /dev/null
 }
 
