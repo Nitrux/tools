@@ -12,7 +12,7 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 [ "$1" = "-h" -o "$1" = "--help" ] && {
 	echo "${0##*/}: Create an ISO image."
-	echo "Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] <directory> <output>"
+	echo "Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] [-v RELEASE_VERSION] <directory> <output>"
 	exit
 }
 
@@ -41,6 +41,11 @@ while [ $# -gt 2 ]; do
 
 		-s)
 			HASH_URL="$2"
+			shift 2
+		;;
+
+		-v)
+			RELEASE_VERSION="$2"
 			shift 2
 		;;
 
@@ -80,9 +85,9 @@ done
 
 #   Create the .INFO file; if needed.
 
-[ "$VERSION" ] && echo "$VERSION" >> $1/.INFO
 [ "$HASH_URL" ] && echo "$HASH_URL" >> $1/.INFO
 [ "$UPDATE_URL" ] && echo "$UPDATE_URL" >> $1/.INFO
+[ "$RELEASE_VERSION" ] && echo "$RELEASE_VERSION" >> $1/.INFO
 
 
 #   Generate an ESP.
