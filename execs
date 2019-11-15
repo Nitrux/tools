@@ -7,7 +7,7 @@ case "$1" in
 	-h|--help)
 
 		echo "${0##*/}: Print the commands found in a UNIX shell script."
-		echo "Usage: ${0##*/} [-h|--help] <binary>"
+		echo "Usage: ${0##*/} [-h|--help] <script>"
 		exit
 
 	;;
