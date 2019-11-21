@@ -22,9 +22,8 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 get_k () { echo "$desc" | grep "^[ \t]*$1" | cut -d ' ' -f 2-; }
 
 
-bst () {
-	sys_base=$(get_k $1)
-	tmp=$(mktemp)
+setup_base () {
+	sys_base=$(get_k BASE)
 
 	case $sys_base in
 		@URL:*)
@@ -40,8 +39,8 @@ bst () {
 }
 
 
-upd () {
-	sys_u_url=$(get_k $1)
+setup_update_url () {
+	sys_u_url=$(get_k UPDATE_URL)
 
 	[ "$sys_u_url" ] || {
 		echo " :: WARNING: 'UPDATE_URL' was not set in $input."
@@ -52,9 +51,9 @@ upd () {
 }
 
 
-pkg () {
-	pm=$(get_k $1)
-	pkgs=$(get_k $2)
+install_pkgs () {
+	pm=$(get_k PACKAGE_MANAGER)
+	pkgs=$(get_k PACKAGES)
 
 	case "$pm" in
 		pacman)
@@ -73,7 +72,8 @@ pkg () {
 		;;
 
 		"")
-			echo " :: WARNING: No package manager specified. Will not install any packages."
+			echo " :: WARNING:"
+			echo "    No package manager specified. Will not install any packages."
 			return
 		;;
 
@@ -85,7 +85,8 @@ pkg () {
 	runch $tmp_root $pm_u
 
 	[ "$pkgs" ] || {
-		echo " :: WARNING: No additional packages were specified."
+		echo " :: WARNING:"
+		echo "    No additional packages were specified."
 		return
 	}
 
@@ -93,15 +94,25 @@ pkg () {
 }
 
 
-boo () {
-	for key in $@; do
+setup_bootloader () {
+	for key in GRUB_FILES GRUB_THEME INITRAMFS KERNELS; do
 		for item in $(get_k $key); do
 
-			src=${item%:*}
-			dst=${item#*:}
+			src=${item%::*}
+			dst=${item#*::}
+			src_path=${src}
+			dst_path=${dst%*/}
 
-			mkdir -p $iso_dir/${dst%*/}
-			cp -ur $tmp_root/$src $iso_dir/$dst
+			test -e $tmp_root ||
+				_e "'$src' does not exist."
+
+			mkdir -p $iso_dir/
+
+			test -d $src && {
+				:
+			} || {
+				:
+			}
 
 		done
 	done
@@ -137,19 +148,14 @@ desc=$(
 
 #   Start the build.
 
-bst BASE
-upd UPDATE_URL
+setup_base
+setup_update_url
 
-pkg \
-	PACKAGE_MANAGER \
-	PACKAGES
+install_pkgs
+setup_bootloader
 
-boo \
-	GRUB_FILES \
-	GRUB_THEME \
-	INITRAMFS \
-	KERNELS
 
+#   All done. Generate the artifacts.
 
 mksquashfs \
 	$tmp_root \
@@ -171,5 +177,6 @@ zsyncmake \
 
 
 sha256sum $output > $output.sha256sum
+md5sum $output > $output.md5sum
 
-echo "Successfully generated '$OUTPUT'."
+echo "Successfully generated '$output'."

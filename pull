@@ -80,7 +80,7 @@ out="$1"
 
 echo "Trying to pull $img:$tag"
 
-while [ ! "$token" ]; do
+until [ "$token" ]; do
 	token=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$img:pull" | jq -r .token)
 done
 
