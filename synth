@@ -39,18 +39,6 @@ setup_base () {
 }
 
 
-setup_update_url () {
-	sys_u_url=$(get_k UPDATE_URL)
-
-	[ "$sys_u_url" ] || {
-		echo " :: WARNING: 'UPDATE_URL' was not set in $input."
-		return
-	}
-
-	echo "$sys_u_url" > $iso_dir/.INFO
-}
-
-
 install_pkgs () {
 	pm=$(get_k PACKAGE_MANAGER)
 	pkgs=$(get_k PACKAGES)
@@ -133,6 +121,9 @@ output="${2:-${1%.th}.iso}"
 [ -e "$output" ] &&
 	_e "'$output' already exists."
 
+
+#   Start the build.
+
 desc=$(
 	sed -E '
 		/^[ \t]*(#|$)/d
@@ -145,11 +136,7 @@ desc=$(
 	' $input
 )
 
-
-#   Start the build.
-
 setup_base
-setup_update_url
 
 install_pkgs
 setup_bootloader
@@ -166,6 +153,9 @@ mksquashfs \
 
 
 mkiso \
+	-u "$(get_k UPDATE_URL)" \
+	-s "$(get_k HASH_URL)" \
+	-r "$(get_k RELEASE)" \
 	$iso_dir \
 	$output
 
