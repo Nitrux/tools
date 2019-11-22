@@ -12,7 +12,7 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 [ "$1" = "-h" -o "$1" = "--help" ] && {
 	echo "${0##*/}: Create an ISO image."
-	echo "Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] [-r RELEASE_VERSION] <directory> <output>"
+	echo "Usage: mkiso [-h] [-b] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] [-r RELEASE_VERSION] <directory> <output>"
 	exit
 }
 
@@ -47,6 +47,11 @@ while [ $# -gt 2 ]; do
 		-r)
 			RELEASE_VERSION="$2"
 			shift 2
+		;;
+
+		-b)
+			ENABLE_BIOS=yes
+			shift
 		;;
 
 		-*) _e "Unknown option '$1'.";;
@@ -91,7 +96,6 @@ done
 
 
 #   Generate an ESP.
-#   _mk_efi_img <output>.
 
 efi_tmp_dir=$(mktemp -d)
 grub_img=$efi_tmp_dir/bootx64.efi
@@ -130,8 +134,8 @@ ISO_DIR="$1"
 OUTPUT="$2"
 
 xorriso -as mkisofs \
+	-r -l \
 	-V "$LABEL" \
-	-r -J -l \
 	-iso-level 3 \
 	-joliet-long \
 	-no-emul-boot \
