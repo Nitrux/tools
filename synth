@@ -83,24 +83,22 @@ install_pkgs () {
 
 
 setup_bootloader () {
+
+	sep="=>"
+
 	for key in GRUB_FILES GRUB_THEME INITRAMFS KERNELS; do
 		for item in $(get_k $key); do
 
-			src=${item%::*}
-			dst=${item#*::}
-			src_path=${src}
-			dst_path=${dst%*/}
+			src=$tmp_root/${item%$sep*}
+			dst=$iso_dir/${item#*$sep}
+			src_path=$(dirname $src)
+			dst_path=$(dirname $dst)
 
-			test -e $tmp_root ||
+			test -e $src ||
 				_e "'$src' does not exist."
 
-			mkdir -p $iso_dir/
-
-			test -d $src && {
-				:
-			} || {
-				:
-			}
+			mkdir -p $dst_path
+			cp -r $src $dst
 
 		done
 	done
@@ -124,17 +122,35 @@ output="${2:-${1%.th}.iso}"
 
 #   Start the build.
 
-desc=$(
-	sed -E '
+preproc='
+
+	# sed script.
+
+	# Remove comments.
+
 		/^[ \t]*(#|$)/d
+
+
+	# Remove empty lines.
+
 		s/[ \t]*$//
+
+
+	# Join lines ending in a ',' char.
+
 		:x N
 		/,$/ b x
 		/[A-Z_]$/ b x
 		s/,\n[ \t]*/ /g
 		s/([A-Z_])\n[ \t]*/\1 /g
-	' $input
-)
+
+
+	# Join pairs of files (src => dst).
+
+		s/[ \t]*=>[ \t]*/=>/g
+'
+
+desc=$(sed -E "$preproc" $input)
 
 setup_base
 
