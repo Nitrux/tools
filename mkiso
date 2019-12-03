@@ -12,39 +12,51 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 [ "$1" = "-h" -o "$1" = "--help" ] && {
 	echo "${0##*/}: Create an ISO image."
-	echo "Usage: mkiso [-h] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] <directory> <output>"
+	echo "Usage: mkiso [-h] [-b] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] [-r RELEASE] <directory> <output>"
 	exit
 }
 
-while [ $# -gt 2 ]; do
+while :; do
 	case $1 in
 
 		-V)
-			LABEL=$2
+			label=$2
 			shift 2
 		;;
 
 		-g)
-			CONFIG_FILES="$CONFIG_FILES $2"
+			config_files="$config_files $2"
 			shift 2
 		;;
 
 		-t)
-			THEMES="$THEMES $2"
+			themes="$themes $2"
 			shift 2
 		;;
 
 		-u)
-			UPDATE_URL="$2"
+			update_url="$2"
 			shift 2
 		;;
 
 		-s)
-			HASH_URL="$2"
+			hash_url="$2"
 			shift 2
 		;;
 
+		-r)
+			release="$2"
+			shift 2
+		;;
+
+		-b)
+			enable_bios=yes
+			shift
+		;;
+
 		-*) _e "Unknown option '$1'.";;
+
+		*) break;;
 
 	esac
 done
@@ -52,41 +64,40 @@ done
 
 #   Check the command line.
 
+iso_dir="$1"
+output="$2"
+
 [ $# -eq 2 ] ||
 	_e "Bad command line. Wrong number of arguments."
 
-[ -d "$1" ] ||
-	_e "'$1' is not a directory."
-
-[ "$2" ] ||
-	_e "No output specified."
+[ -d "$iso_dir" ] ||
+	_e "'$iso_dir' is not a directory."
 
 
 #   Copy the configuration files.
 
-[ "$CONFIG_FILES" ] && {
-	mkdir -p $1/boot/grub
-	cp $CONFIG_FILES $1/boot/grub
+[ "$config_files" ] && {
+	mkdir -p "$iso_dir"/boot/grub
+	cp $config_files "$iso_dir"/boot/grub
 }
 
 
 #   Copy the themes.
 
-[ "$THEMES" ] && {
-	mkdir -p $1/boot/grub/themes
-	cp -r $THEMES $1/boot/grub/themes
+[ "$themes" ] && {
+	mkdir -p "$iso_dir"/boot/grub/themes
+	cp -r $themes "$iso_dir"/boot/grub/themes
 }
 
 
 #   Create the .INFO file; if needed.
 
-[ "$VERSION" ] && echo "$VERSION" >> $1/.INFO
-[ "$HASH_URL" ] && echo "$HASH_URL" >> $1/.INFO
-[ "$UPDATE_URL" ] && echo "$UPDATE_URL" >> $1/.INFO
+[ "$hash_url" ] && echo "HASH_URL $hash_url" >> "$iso_dir"/.INFO
+[ "$update_url" ] && echo "UPDATE_URL $update_url" >> "$iso_dir"/.INFO
+[ "$release" ] && echo "RELEASE $release" >> "$iso_dir"/.INFO
 
 
 #   Generate an ESP.
-#   _mk_efi_img <output>.
 
 efi_tmp_dir=$(mktemp -d)
 grub_img=$efi_tmp_dir/bootx64.efi
@@ -119,20 +130,39 @@ mcopy \
 	::/efi/boot
 
 
+#   If needed, copy BIOS boot artifacts.
+
+[ "$enable_bios" = yes ] && {
+	mkdir -p "$iso_dir"/isolinux
+
+	cp \
+		/usr/lib/syslinux/bios/isohdpfx.bin \
+		/usr/lib/syslinux/bios/isolinux.bin \
+		/usr/lib/syslinux/bios/*.c32 \
+		"$iso_dir"/isolinux
+
+	bios_boot_args="
+		-no-emul-boot \
+		-b isolinux/isolinux.bin \
+		-c isolinux/boot.cat \
+		-boot-load-size 4 \
+		-boot-info-table \
+		-isohybrid-mbr $iso_dir/isolinux/isohdpfx.bin \
+		-eltorito-alt-boot \
+	"
+}
+
+
 #   Build the image.
 
-ISO_DIR="$1"
-OUTPUT="$2"
-
 xorriso -as mkisofs \
-	-V "$LABEL" \
 	-r -J -l \
-	-iso-level 3 \
 	-joliet-long \
+	-iso-level 3 \
+	$bios_boot_args \
 	-no-emul-boot \
-	-eltorito-alt-boot \
 	-append_partition 2 0xef $efi_img \
 	-e --interval:appended_partition_2:all:: \
 	-partition_cyl_align all \
 	-partition_offset 16 \
-	-o "$OUTPUT" "$ISO_DIR"
+	-o "$output" "$iso_dir"

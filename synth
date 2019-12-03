@@ -22,9 +22,8 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 get_k () { echo "$desc" | grep "^[ \t]*$1" | cut -d ' ' -f 2-; }
 
 
-bst () {
-	sys_base=$(get_k $1)
-	tmp=$(mktemp)
+setup_base () {
+	sys_base=$(get_k BASE)
 
 	case $sys_base in
 		@URL:*)
@@ -40,21 +39,9 @@ bst () {
 }
 
 
-upd () {
-	sys_u_url=$(get_k $1)
-
-	[ "$sys_u_url" ] || {
-		echo " :: WARNING: 'UPDATE_URL' was not set in $input."
-		return
-	}
-
-	echo "$sys_u_url" > $iso_dir/.INFO
-}
-
-
-pkg () {
-	pm=$(get_k $1)
-	pkgs=$(get_k $2)
+install_pkgs () {
+	pm=$(get_k PACKAGE_MANAGER)
+	pkgs=$(get_k PACKAGES)
 
 	case "$pm" in
 		pacman)
@@ -73,7 +60,8 @@ pkg () {
 		;;
 
 		"")
-			echo " :: WARNING: No package manager specified. Will not install any packages."
+			echo " :: WARNING:"
+			echo "    No package manager specified. Will not install any packages."
 			return
 		;;
 
@@ -85,7 +73,8 @@ pkg () {
 	runch $tmp_root $pm_u
 
 	[ "$pkgs" ] || {
-		echo " :: WARNING: No additional packages were specified."
+		echo " :: WARNING:"
+		echo "    No additional packages were specified."
 		return
 	}
 
@@ -93,15 +82,23 @@ pkg () {
 }
 
 
-boo () {
-	for key in $@; do
+setup_bootloader () {
+
+	sep="=>"
+
+	for key in GRUB_FILES GRUB_THEME INITRAMFS KERNELS; do
 		for item in $(get_k $key); do
 
-			src=${item%:*}
-			dst=${item#*:}
+			src=$tmp_root/${item%$sep*}
+			dst=$iso_dir/${item#*$sep}
+			src_path=$(dirname $src)
+			dst_path=$(dirname $dst)
 
-			mkdir -p $iso_dir/${dst%*/}
-			cp -ur $tmp_root/$src $iso_dir/$dst
+			test -e $src ||
+				_e "'$src' does not exist."
+
+			mkdir -p $dst_path
+			cp -r $src $dst
 
 		done
 	done
@@ -122,34 +119,46 @@ output="${2:-${1%.th}.iso}"
 [ -e "$output" ] &&
 	_e "'$output' already exists."
 
-desc=$(
-	sed -E '
+
+#   Start the build.
+
+preproc='
+
+	# sed script.
+
+	# Remove comments.
+
 		/^[ \t]*(#|$)/d
+
+
+	# Remove empty lines.
+
 		s/[ \t]*$//
+
+
+	# Join lines ending in a ',' char.
+
 		:x N
 		/,$/ b x
 		/[A-Z_]$/ b x
 		s/,\n[ \t]*/ /g
 		s/([A-Z_])\n[ \t]*/\1 /g
-	' $input
-)
 
 
-#   Start the build.
+	# Join pairs of files (src => dst).
 
-bst BASE
-upd UPDATE_URL
+		s/[ \t]*=>[ \t]*/=>/g
+'
 
-pkg \
-	PACKAGE_MANAGER \
-	PACKAGES
+desc=$(sed -E "$preproc" $input)
 
-boo \
-	GRUB_FILES \
-	GRUB_THEME \
-	INITRAMFS \
-	KERNELS
+setup_base
 
+install_pkgs
+setup_bootloader
+
+
+#   All done. Generate the artifacts.
 
 mksquashfs \
 	$tmp_root \
@@ -160,6 +169,9 @@ mksquashfs \
 
 
 mkiso \
+	-u "$(get_k UPDATE_URL)" \
+	-s "$(get_k HASH_URL)" \
+	-r "$(get_k RELEASE)" \
 	$iso_dir \
 	$output
 
@@ -171,5 +183,6 @@ zsyncmake \
 
 
 sha256sum $output > $output.sha256sum
+md5sum $output > $output.md5sum
 
-echo "Successfully generated '$OUTPUT'."
+echo "Successfully generated '$output'."
