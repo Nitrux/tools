@@ -50,7 +50,7 @@ while :; do
 		;;
 
 		-b)
-			enable_bios=yes
+			enable_bios=y
 			shift
 		;;
 
@@ -132,22 +132,32 @@ mcopy \
 
 #   If needed, copy BIOS boot artifacts.
 
-[ "$enable_bios" = yes ] && {
-	mkdir -p "$iso_dir"/isolinux
+[ "$enable_bios" = y ] && {
 
-	cp \
-		/usr/lib/syslinux/bios/isohdpfx.bin \
-		/usr/lib/syslinux/bios/isolinux.bin \
-		/usr/lib/syslinux/bios/*.c32 \
-		"$iso_dir"/isolinux
+	grub_bios_img=$iso_dir/boot/grub/eltorito.img
+
+	mkdir -p \
+		${grub_bios_img%/*}
+
+	grub-mkimage \
+		-C xz \
+		-p /boot/grub \
+		-o $grub_bios_img \
+		-O i386-pc-eltorito \
+		-d /usr/lib/grub/i386-pc \
+		boot linux search normal configfile \
+		part_gpt biosdisk btrfs ext2 fat iso9660 loopback \
+		test keystatus gfxmenu regexp probe \
+		all_video gfxterm font echo \
+		read ls cat png jpeg halt reboot
 
 	bios_boot_args="
+		-b ${grub_bios_img#$iso_dir} \
 		-no-emul-boot \
-		-b isolinux/isolinux.bin \
-		-c isolinux/boot.cat \
 		-boot-load-size 4 \
 		-boot-info-table \
-		-isohybrid-mbr $iso_dir/isolinux/isohdpfx.bin \
+		--grub2-boot-info \
+		--grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img \
 		-eltorito-alt-boot \
 	"
 }
@@ -155,14 +165,15 @@ mcopy \
 
 #   Build the image.
 
+cp $efi_img $iso_dir
+
 xorriso -as mkisofs \
 	-r -J -l \
 	-joliet-long \
 	-iso-level 3 \
 	$bios_boot_args \
 	-no-emul-boot \
-	-append_partition 2 0xef $efi_img \
-	-e --interval:appended_partition_2:all:: \
-	-partition_cyl_align all \
-	-partition_offset 16 \
+	--efi-boot ${efi_img##*/} \
+	-efi-boot-part \
+	--efi-boot-image \
 	-o "$output" "$iso_dir"
