@@ -12,7 +12,7 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 [ "$1" = "-h" -o "$1" = "--help" ] && {
 	echo "${0##*/}: Create an ISO image."
-	echo "Usage: mkiso [-h] [-g grub-configuration] [-t grub-theme-path] [-u UPDATE_URL] [-s HASH_URL] [-r RELEASE] <directory> <output>"
+	echo "Usage: mkiso [-h] [-b] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] [-r RELEASE] <directory> <output>"
 	exit
 }
 
@@ -30,7 +30,7 @@ while :; do
 		;;
 
 		-t)
-			themes="$themes --themes=$2"
+			themes="$themes $2"
 			shift 2
 		;;
 
@@ -49,8 +49,8 @@ while :; do
 			shift 2
 		;;
 
-		#	Just ignore this flag.
 		-b)
+			enable_bios=y
 			shift
 		;;
 
@@ -67,11 +67,11 @@ done
 iso_dir="$1"
 output="$2"
 
+[ $# -eq 2 ] ||
+	_e "Bad command line. Wrong number of arguments."
+
 [ -d "$iso_dir" ] ||
 	_e "'$iso_dir' is not a directory."
-
-[ "$output" ] ||
-	_e "No output was given."
 
 
 #   Copy the configuration files.
@@ -84,10 +84,10 @@ output="$2"
 
 #   Copy the themes.
 
-# [ "$themes" ] && {
-	# mkdir -p "$iso_dir"/boot/grub/themes
-	# cp -r $themes "$iso_dir"/boot/grub/themes
-# }
+[ "$themes" ] && {
+	mkdir -p "$iso_dir"/boot/grub/themes
+	cp -r $themes "$iso_dir"/boot/grub/themes
+}
 
 
 #   Create the .INFO file; if needed.
@@ -97,9 +97,84 @@ output="$2"
 [ "$release" ] && echo "RELEASE $release" >> "$iso_dir"/.INFO
 
 
+#   Generate an ESP.
+
+efi_tmp_dir=$(mktemp -d)
+grub_img=$efi_tmp_dir/bootx64.efi
+efi_img=$efi_tmp_dir/efi.img
+
+grub-mkimage \
+	-C xz \
+	-O x86_64-efi \
+	-o $grub_img \
+	-p /boot/grub \
+	boot linux search normal configfile \
+	part_gpt btrfs ext2 fat iso9660 loopback \
+	test keystatus gfxmenu regexp probe \
+	efi_gop efi_uga all_video gfxterm font \
+	echo read ls cat png jpeg halt reboot
+
+size=$(( $(stat -c %s $grub_img) / 1024 + 511))
+
+export MTOOLS_SKIP_CHECK=1
+mkfs.vfat -C $efi_img $size
+
+mmd \
+	-i $efi_img \
+	::/efi \
+	::/efi/boot
+
+mcopy \
+	-i $efi_img \
+	$grub_img \
+	::/efi/boot
+
+
+#   If needed, copy BIOS boot artifacts.
+
+[ "$enable_bios" = y ] && {
+
+	grub_bios_img=$iso_dir/boot/grub/eltorito.img
+
+	mkdir -p ${grub_bios_img%/*}
+
+	grub-mkimage \
+		-C xz \
+		-p /boot/grub \
+		-o $grub_bios_img \
+		-O i386-pc-eltorito \
+		-d /usr/lib/grub/i386-pc \
+		boot linux search normal configfile \
+		part_gpt biosdisk btrfs ext2 fat iso9660 loopback \
+		test keystatus gfxmenu regexp probe \
+		all_video gfxterm font echo \
+		read ls cat png jpeg halt reboot
+
+}
+
+
 #   Build the image.
 
-grub-mkrescue \
-	"$themes" \
-	--compress=xz \
+cp $efi_img $iso_dir
+
+xorriso -as mkisofs \
+	--protective-msdos-label \
+	-volid "$label" \
+	-iso-level 3 \
+	-r -l -no-pad \
+	--sort-weight 0 / \
+	--sort-weight 1 /boot \
+	--grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img \
+	-iso_mbr_part_type 0x00 \
+	-partition_offset 16 \
+	-b boot/grub/eltorito.img \
+	-c boot.catalog \
+	-no-emul-boot \
+	-boot-load-size 4 \
+	-boot-info-table \
+	--grub2-boot-info \
+	-eltorito-alt-boot \
+	-append_partition 2 0xef $efi_img \
+	-e --interval:appended_partition_2:all:: \
+	-no-emul-boot \
 	-o "$output" "$iso_dir"
