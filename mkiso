@@ -147,6 +147,7 @@ test "$uefi" = y && {
 		-p /boot/grub \
 		$_uefi_mods
 
+	export MTOOLS_SKIP_CHECK=1
 	mkfs.vfat \
 		-C "$iso_dir/efi.img" \
 		$(( $(wc -c < $efi_img) / 1024 + 511))
