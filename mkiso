@@ -1,20 +1,14 @@
 #! /bin/sh
 
 
-#   Exit on error.
+#	Exit on error.
 
 set -e
 
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#   Option parsing.
-
-[ "$1" = "-h" -o "$1" = "--help" ] && {
-	echo "${0##*/}: Create an ISO image."
-	echo "Usage: mkiso [-h] [-b] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] [-r RELEASE] <directory> <output>"
-	exit
-}
+#	Option parsing.
 
 while :; do
 	case $1 in
@@ -50,8 +44,24 @@ while :; do
 		;;
 
 		-b)
-			enable_bios=yes
+			bios=y
 			shift
+		;;
+
+		-e)
+			uefi=y
+			shift
+		;;
+
+		-d|--debug)
+			set -x
+			shift
+		;;
+
+		-h|--help)
+			echo "${0##*/}: Generate an ISO image."
+			echo "Usage: mkiso [-h] [-d] [-b] [-e] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] [-r RELEASE] <directory> <output>"
+			exit
 		;;
 
 		-*) _e "Unknown option '$1'.";;
@@ -62,107 +72,114 @@ while :; do
 done
 
 
-#   Check the command line.
+#	Check the command line.
 
 iso_dir="$1"
 output="$2"
 
-[ $# -eq 2 ] ||
+test $# -eq 2 ||
 	_e "Bad command line. Wrong number of arguments."
 
-[ -d "$iso_dir" ] ||
+test -d "$iso_dir" ||
 	_e "'$iso_dir' is not a directory."
 
 
-#   Copy the configuration files.
+#	Copy the configuration files.
 
-[ "$config_files" ] && {
+test "$config_files" && {
 	mkdir -p "$iso_dir"/boot/grub
 	cp $config_files "$iso_dir"/boot/grub
 }
 
 
-#   Copy the themes.
+#	Copy the themes.
 
-[ "$themes" ] && {
+test "$themes" && {
 	mkdir -p "$iso_dir"/boot/grub/themes
 	cp -r $themes "$iso_dir"/boot/grub/themes
 }
 
 
-#   Create the .INFO file; if needed.
+#	Create the .INFO file if needed.
 
-[ "$hash_url" ] && echo "HASH_URL $hash_url" >> "$iso_dir"/.INFO
-[ "$update_url" ] && echo "UPDATE_URL $update_url" >> "$iso_dir"/.INFO
-[ "$release" ] && echo "RELEASE $release" >> "$iso_dir"/.INFO
-
-
-#   Generate an ESP.
-
-efi_tmp_dir=$(mktemp -d)
-grub_img=$efi_tmp_dir/bootx64.efi
-efi_img=$efi_tmp_dir/efi_img
-
-grub-mkimage \
-	-C xz \
-	-O x86_64-efi \
-	-o $grub_img \
-	-p /boot/grub \
-	boot linux search normal configfile \
-	part_gpt btrfs ext2 fat iso9660 loopback \
-	test keystatus gfxmenu regexp probe \
-	efi_gop efi_uga all_video gfxterm font \
-	echo read ls cat png jpeg halt reboot
-
-size=$(( $(stat -c %s $grub_img) / 1024 + 511))
-
-export MTOOLS_SKIP_CHECK=1
-mkfs.vfat -C $efi_img $size
-
-mmd \
-	-i $efi_img \
-	::/efi \
-	::/efi/boot
-
-mcopy \
-	-i $efi_img \
-	$grub_img \
-	::/efi/boot
+test "$hash_url" && echo "HASH_URL $hash_url" >> "$iso_dir/.INFO"
+test "$update_url" && echo "UPDATE_URL $update_url" >> "$iso_dir/.INFO"
+test "$release" && echo "RELEASE $release" >> "$iso_dir/.INFO"
 
 
-#   If needed, copy BIOS boot artifacts.
+#	GRUB2 modules.
 
-[ "$enable_bios" = yes ] && {
-	mkdir -p "$iso_dir"/isolinux
+_bios_mods="biosdisk boot linux search normal configfile part_gpt btrfs ext2 fat iso9660 loopback test keystatus gfxmenu regexp probe all_video gfxterm font echo read ls cat png jpeg halt reboot"
+_uefi_mods="efi_gop efi_uga boot linux search normal configfile part_gpt btrfs ext2 fat iso9660 loopback test keystatus gfxmenu regexp probe all_video gfxterm font echo read ls cat png jpeg halt reboot"
 
-	cp \
-		/usr/lib/syslinux/bios/isohdpfx.bin \
-		/usr/lib/syslinux/bios/isolinux.bin \
-		/usr/lib/syslinux/bios/*.c32 \
-		"$iso_dir"/isolinux
 
-	bios_boot_args="
-		-no-emul-boot \
-		-b isolinux/isolinux.bin \
-		-c isolinux/boot.cat \
-		-boot-load-size 4 \
-		-boot-info-table \
-		-isohybrid-mbr $iso_dir/isolinux/isohdpfx.bin \
-		-eltorito-alt-boot \
+#	Generate boot artifacts.
+
+test "$bios" = y && {
+	bios_img=bios.img
+
+	grub-mkimage \
+		-O i386-pc-eltorito \
+		-o "$iso_dir/$bios_img" \
+		-p /boot/grub \
+		$_bios_mods
+
+	bios_opts="
+		-eltorito-alt-boot
+		-b bios.img
+		-no-emul-boot
+		-graft-points bios.img=$iso_dir/$bios_img
+		-boot-load-size 4
+		-boot-info-table
+		-c boot.cat
+		--grub2-boot-info
+		--grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img
 	"
 }
 
 
-#   Build the image.
+test "$uefi" = y && {
+	efi_img=$(mktemp)
 
-xorriso -as mkisofs \
-	-r -J -l \
-	-joliet-long \
+	grub-mkimage \
+		-O x86_64-efi \
+		-o "$efi_img" \
+		-p /boot/grub \
+		$_uefi_mods
+
+	export MTOOLS_SKIP_CHECK=1
+	mkfs.vfat \
+		-C "$iso_dir/efi.img" \
+		$(( $(wc -c < $efi_img) / 1024 + 511))
+
+	mmd \
+		-i "$iso_dir/efi.img" \
+		efi \
+		efi/boot
+
+	mcopy \
+		-i "$iso_dir/efi.img" \
+		"$efi_img" \
+		::efi/boot/bootx64.efi
+
+	uefi_opts="
+		-eltorito-alt-boot
+		-no-emul-boot
+		-e efi.img
+		-graft-points efi.img=$iso_dir/efi.img
+		-append_partition 2 0xef $iso_dir/efi.img
+	"
+}
+
+
+#	Generate ISO image.
+
+xorriso \
+	-as mkisofs \
 	-iso-level 3 \
-	$bios_boot_args \
-	-no-emul-boot \
-	-append_partition 2 0xef $efi_img \
-	-e --interval:appended_partition_2:all:: \
-	-partition_cyl_align all \
-	-partition_offset 16 \
-	-o "$output" "$iso_dir"
+	-full-iso9660-filenames \
+	-volid "$label" \
+	-o "$output" \
+	"$iso_dir" \
+	$bios_opts \
+	$uefi_opts
