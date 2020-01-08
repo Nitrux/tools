@@ -23,8 +23,7 @@ clean () {
 
 	#   Clean the system mountpoints.
 
-	umount -fR \
-		$CHROOT_DIR
+	umount -f -R $_chroot_dir
 
 }
 
@@ -37,7 +36,7 @@ clean () {
 [ -d "$1" ] ||
 	_e "'$1' is not a directory."
 
-CHROOT_DIR="$1"
+_chroot_dir="$1"
 shift
 
 #   Clean the chroot directory on exit.
@@ -48,27 +47,27 @@ trap clean EXIT HUP INT TERM
 #   Create the essential mountpoints for the chroot.
 
 mkdir -p \
-	$CHROOT_DIR/proc \
-	$CHROOT_DIR/sys \
-	$CHROOT_DIR/dev \
-	$CHROOT_DIR/run \
-	$CHROOT_DIR/tmp
+	$_chroot_dir/proc \
+	$_chroot_dir/sys \
+	$_chroot_dir/dev \
+	$_chroot_dir/run \
+	$_chroot_dir/tmp
 
-mount --bind $CHROOT_DIR $CHROOT_DIR
-mount -t proc -o nosuid,noexec,nodev . $CHROOT_DIR/proc
-mount -t sysfs -o nosuid,noexec,nodev,ro . $CHROOT_DIR/sys
-mount -t devtmpfs -o mode=0755,nosuid . $CHROOT_DIR/dev
-mount -t devpts -o mode=0620,gid=5,nosuid,noexec . $CHROOT_DIR/dev/pts
-mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev . $CHROOT_DIR/dev/shm
-mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid . $CHROOT_DIR/tmp
-mount --bind /run $CHROOT_DIR/run
+mount --bind $_chroot_dir $_chroot_dir
+mount -t proc -o nosuid,noexec,nodev . $_chroot_dir/proc
+mount -t sysfs -o nosuid,noexec,nodev,ro . $_chroot_dir/sys
+mount -t devtmpfs -o mode=0755,nosuid . $_chroot_dir/dev
+mount -t devpts -o mode=0620,gid=5,nosuid,noexec . $_chroot_dir/dev/pts
+mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev . $_chroot_dir/dev/shm
+mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid . $_chroot_dir/tmp
+mount --bind /run $_chroot_dir/run
 
 
 #   Allow network access.
 
 [ -f /etc/resolv.conf ] && {
-	mkdir -p $CHROOT_DIR/etc
-	cp $(readlink -f /etc/resolv.conf) $CHROOT_DIR/etc/resolv.conf
+	mkdir -p $_chroot_dir/etc
+	cp $(readlink -f /etc/resolv.conf) $_chroot_dir/etc/resolv.conf
 }
 
 
@@ -78,9 +77,9 @@ mount --bind /run $CHROOT_DIR/run
 [ "$1" = "-s" ] && {
 	script="$2"
 	shift 2
-	cp "$script" $CHROOT_DIR
-	chmod +x $CHROOT_DIR/${script##*/}
-	SHELL=/bin/sh unshare --fork --pid chroot $CHROOT_DIR /${script##*/}
-	rm -r $CHROOT_DIR/${script##*/}
+	cp "$script" $_chroot_dir
+	chmod +x $_chroot_dir/${script##*/}
+	SHELL=/bin/sh unshare --fork --pid chroot $_chroot_dir /${script##*/}
+	rm -r $_chroot_dir/${script##*/}
 } ||
-	SHELL=/bin/sh unshare --fork --pid chroot $CHROOT_DIR $@
+	SHELL=/bin/sh unshare --fork --pid chroot $_chroot_dir $@

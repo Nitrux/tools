@@ -2,7 +2,7 @@
 
 set -e
 
-case $1 in
+case "$1" in
 
 	-h|--help)
 
@@ -28,7 +28,7 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 d=$1
 shift
 
-for f in $@; do
+for f in "$@"; do
 	[ -f "$f" ] ||
 		_e "'$f' is not a file."
 
@@ -39,7 +39,7 @@ done
 
 #   Copy the libraries. (Oh, if we had static binaries everywhere!)
 
-ldd $@ |
+ldd "$@" |
 awk '
 	$1 ~/^\// { print $1 }
 	$3 ~/^\// { print $3 }
