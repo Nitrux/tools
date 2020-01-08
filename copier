@@ -44,8 +44,8 @@ awk '
 	$1 ~/^\// { print $1 }
 	$3 ~/^\// { print $3 }
 ' |
-sed '/:$/d'|
-sort -u|
+sed '/:$/d' |
+sort -u |
 while read l; do
 	mkdir -p $d/${l%/*}
 	cp -u $l $d/$l
