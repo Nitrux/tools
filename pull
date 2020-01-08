@@ -61,7 +61,7 @@ _pull () {
 
 #   Process the request.
 
-[ $# -eq 2 ] ||
+test $# -eq 2 ||
 	_e "Wrong number of arguments."
 
 tag="${2##*:}"
@@ -69,19 +69,19 @@ img="${2%%:*}"
 owner="${img%%/*}"
 out="$1"
 
-[ "$img" ] ||
+test "$img" ||
 	_e "No image provided."
 
-[ -d "$out" ] ||
+test -d "$out" ||
 	_e "'$out' is not a directory."
 
-[ -z "$tag" -o "$tag" = "$img" ] && tag=latest
-[ -z "$owner" -o "$owner" = "$img" ] && img="library/$img"
+test -z "$tag" -o "$tag" = "$img" && tag=latest
+test -z "$owner" -o "$owner" = "$img" && img="library/$img"
 
 echo "Trying to pull $img:$tag"
 
-until [ "$token" ]; do
+until test "$token"; do
 	token=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$img:pull" | jq -r .token)
 done
 
-_pull $out $img $tag $token
+_pull "$out" "$img" "$tag" "$token"
