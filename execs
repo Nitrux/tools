@@ -6,7 +6,7 @@ case "$1" in
 
 	-h|--help)
 
-		echo "${0##*/}: Print the commands found in a UNIX shell script."
+		echo "${0##*/}: Print the commands called by a UNIX shell script."
 		echo "Usage: ${0##*/} [-h|--help] <script>"
 		exit
 
@@ -17,19 +17,19 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#   Binaries match the following rules:
-#   They are the first word in a line.
-#   They come after a "`" character.
-#   They come after a "|" character.
-#   They come after a "$(" construct.
-#   Their names start with "/", "./" or "../".
+#	Binaries match the following rules:
+#	They are the first word in a line.
+#	They come after a "`" character.
+#	They come after a "|" character.
+#	They come after a "$(" construct.
+#	Their names start with "/", "./" or "../".
 
 
-#   Functions.
+#	Functions.
 
 _get_path () {
-	while read file; do
-		type $file | grep -q \
+	while read cmd; do
+		type $cmd | grep -q \
 			-e builtin \
 			-e keyword \
 			-e function \
@@ -37,21 +37,27 @@ _get_path () {
 		&&
 			continue
 
-		which -- $file || :
+		which -- $cmd || true
 	done 2> /dev/null
 }
 
-sed '
-	/^#/d
-	/^$/d
-	s:^[ \t]*::
-	s:(:\n:g
-	s:{:\n:g
-	s:`:\n:g
-	s:|:\n:g
-	s:&:\n:g
-	s:;:\n:g
-' $@               |
+
+_list_cmds () {
+	sed '
+		/^#/d
+		/^$/d
+		s:^[ \t]*::
+		s:(:\n:g
+		s:{:\n:g
+		s:`:\n:g
+		s:|:\n:g
+		s:&:\n:g
+		s:;:\n:g
+	' "$@"
+}
+
+
+_list_cmds "$@"    |
 awk '{ print $1 }' |
 sort -u            |
 _get_path

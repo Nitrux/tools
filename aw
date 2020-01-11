@@ -19,10 +19,10 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 [ $# -eq 0 ] &&
 	_e "Nothing to wrap."
 
-NAME="$1"
+_app="$1"
 shift
 
-./$NAME --appimage-extract > /dev/null 2>&1
+./$_app --appimage-extract > /dev/null 2>&1
 chmod +x squashfs-root/AppRun
 ./squashfs-root/AppRun $@
 rm -rf squashfs-root

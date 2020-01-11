@@ -2,7 +2,7 @@
 
 set -e
 
-case $1 in
+case "$1" in
 
 	-h|--help)
 
@@ -17,36 +17,33 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#   Check the command line.
+#	Check the command line.
 
-[ $# -lt 2 ] &&
+test $# -lt 2 &&
 	_e "Too few arguments."
 
 
-#   Copy the binaries.
+#	Copy the binaries.
 
-d=$1
+dst="$1"
 shift
 
-for f in $@; do
-	[ -f "$f" ] ||
-		_e "'$f' is not a file."
+for item in "$@"; do
+	test -f "$item" ||
+		_e "'$item' is not a file."
 
-	mkdir -p $d/${f%/*}
-	cp -u $f $d/$f
+	mkdir -p $dst/${item%/*}
+	cp -u $f $dst/$item
 done
 
 
-#   Copy the libraries. (Oh, if we had static binaries everywhere!)
+#	Copy the libraries. (Oh, if we had static binaries everywhere!)
 
-ldd $@ |
-awk '
-	$1 ~/^\// { print $1 }
-	$3 ~/^\// { print $3 }
-' |
-sed '/:$/d'|
-sort -u|
-while read l; do
-	mkdir -p $d/${l%/*}
-	cp -u $l $d/$l
+ldd "$@"        |
+cut -d ' ' -f 3 |
+sed '/:$/d'     |
+sort -u         |
+while read lib; do
+	mkdir -p $dst/${lib%/*}
+	cp -u $lib $dst/$lib
 done

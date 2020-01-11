@@ -17,7 +17,7 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#   Functions.
+#	Functions.
 
 get_k () { echo "$desc" | grep "^[ \t]*$1" | cut -d ' ' -f 2-; }
 
@@ -72,7 +72,7 @@ install_pkgs () {
 
 	runch $tmp_root $pm_u
 
-	[ "$pkgs" ] || {
+	test "$pkgs" || {
 		echo " :: WARNING:"
 		echo "    No additional packages were specified."
 		return
@@ -105,49 +105,47 @@ setup_bootloader () {
 }
 
 
-#   Setup the build.
+#	Setup the build.
 
 root_sfs=rootfs.sfs
 tmp_root=$(mktemp -d $(pwd)/.tmp.XXXX)
 iso_dir=$(mktemp -d $(pwd)/.tmp.XXXX)
+
 input="$1"
 output="${2:-${1%.th}.iso}"
 
-[ -f "$input" ] ||
+test -f "$input" ||
 	_e "'$input' is not a file."
 
-[ -e "$output" ] &&
+test -e "$output" &&
 	_e "'$output' already exists."
 
 
-#   Start the build.
+#	Start the build.
 
 preproc='
+		# Remove comments.
 
-	# sed script.
-
-	# Remove comments.
-
-		/^[ \t]*(#|$)/d
+	/^[ \t]*(#|$)/d
 
 
-	# Remove empty lines.
+		# Remove empty lines.
 
-		s/[ \t]*$//
-
-
-	# Join lines ending in a ',' char.
-
-		:x N
-		/,$/ b x
-		/[A-Z_]$/ b x
-		s/,\n[ \t]*/ /g
-		s/([A-Z_])\n[ \t]*/\1 /g
+	s/[ \t]*$//
 
 
-	# Join pairs of files (src => dst).
+		# Join lines ending with ",".
 
-		s/[ \t]*=>[ \t]*/=>/g
+	:x N
+	/,$/ b x
+	/[A-Z_]$/ b x
+	s/,\n[ \t]*/ /g
+	s/([A-Z_]+)\n*[ \t]*/\1 /g
+
+
+		# Join pairs of files (src => dst).
+
+	s/[ \t]*=>[ \t]*/=>/g
 '
 
 desc=$(sed -E "$preproc" $input)
@@ -158,7 +156,7 @@ install_pkgs
 setup_bootloader
 
 
-#   All done. Generate the artifacts.
+#	All done. Generate the artifacts.
 
 mksquashfs \
 	$tmp_root \
@@ -172,6 +170,8 @@ mkiso \
 	-u "$(get_k UPDATE_URL)" \
 	-s "$(get_k HASH_URL)" \
 	-r "$(get_k RELEASE)" \
+	$(test $(get_k BIOS_BOOT) = on && echo "-b") \
+	$(test $(get_k UEFI_BOOT) = on && echo "-e") \
 	$iso_dir \
 	$output
 
@@ -186,3 +186,5 @@ sha256sum $output > $output.sha256sum
 md5sum $output > $output.md5sum
 
 echo "Successfully generated '$output'."
+
+ls --color -l $output*
