@@ -39,12 +39,13 @@ clean () {
 _chroot_dir="$1"
 shift
 
+
 #   Clean the chroot directory on exit.
 
 trap clean EXIT HUP INT TERM
 
 
-#   Create the essential mountpoints for the chroot.
+#   Create the FHS mount points for the chroot.
 
 mkdir -p \
 	$_chroot_dir/proc \
@@ -54,32 +55,32 @@ mkdir -p \
 	$_chroot_dir/tmp
 
 mount --bind $_chroot_dir $_chroot_dir
-mount -t proc -o nosuid,noexec,nodev . $_chroot_dir/proc
-mount -t sysfs -o nosuid,noexec,nodev,ro . $_chroot_dir/sys
-mount -t devtmpfs -o mode=0755,nosuid . $_chroot_dir/dev
-mount -t devpts -o mode=0620,gid=5,nosuid,noexec . $_chroot_dir/dev/pts
-mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev . $_chroot_dir/dev/shm
-mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid . $_chroot_dir/tmp
+mount -t proc -o nosuid,noexec,nodev - $_chroot_dir/proc
+mount -t sysfs -o nosuid,noexec,nodev,ro - $_chroot_dir/sys
+mount -t devtmpfs -o mode=0755,nosuid - $_chroot_dir/dev
+mount -t devpts -o mode=0620,gid=5,nosuid,noexec - $_chroot_dir/dev/pts
+mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev - $_chroot_dir/dev/shm
+mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - $_chroot_dir/tmp
 mount --bind /run $_chroot_dir/run
 
 
 #   Allow network access.
 
-[ -f /etc/resolv.conf ] && {
-	mkdir -p $_chroot_dir/etc
-	cp $(readlink -f /etc/resolv.conf) $_chroot_dir/etc/resolv.conf
-}
+mkdir -p $_chroot_dir/etc
+
+for f in \
+	/etc/hosts \
+	/etc/host.conf \
+	/etc/nsswitch.conf \
+	/etc/resolv.conf
+do
+	[ -f $f ] && {
+		> $_chroot_dir/$f
+		mount --bind $f $_chroot_dir/$f
+	}
+done
 
 
 #   Run the command in the chroot.
 
-
-[ "$1" = "-s" ] && {
-	script="$2"
-	shift 2
-	cp "$script" $_chroot_dir
-	chmod +x $_chroot_dir/${script##*/}
-	SHELL=/bin/sh unshare --fork --pid chroot $_chroot_dir /${script##*/}
-	rm -r $_chroot_dir/${script##*/}
-} ||
-	SHELL=/bin/sh unshare --fork --pid chroot $_chroot_dir $@
+SHELL=/bin/sh exec unshare --fork --pid chroot $_chroot_dir "$@"
