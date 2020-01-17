@@ -1,43 +1,33 @@
 #! /bin/sh
 
+
 set -e
-
-case "$1" in
-
-	-h|--help)
-
-		echo "${0##*/}: Run commands or script in a chroot."
-		echo "Usage: ${0##*/} [-h|--help] <directory> <command|-s shell script> [command arguments]"
-		exit
-
-	;;
-
-esac
-
-_e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
-
 
 #   Helper functions.
 
+_e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
+
 clean () {
 
-	#   Clean the system mountpoints.
+	#   Clean the created mount points.
 
 	umount -f -R $_chroot_dir
 
 }
 
+_mount () {
 
-#   Handle the arguments.
+	test -e "$1" ||
+		_e "'$1' does not exist."
 
-[ $# -lt 2 ] &&
-	_e "Too few arguments."
+	mkdir -p ${2%/*}
 
-[ -d "$1" ] ||
-	_e "'$1' is not a directory."
+	test -f "$1" && > ${2%/*}
+	test -d "$1" && mkdir -p "$2"
 
-_chroot_dir="$1"
-shift
+	mount --bind "$1" "$2"
+
+}
 
 
 #   Clean the chroot directory on exit.
@@ -74,11 +64,56 @@ for f in \
 	/etc/nsswitch.conf \
 	/etc/resolv.conf
 do
-	[ -f $f ] && {
+	test -f $f && {
 		> $_chroot_dir/$f
 		mount --bind $f $_chroot_dir/$f
 	}
 done
+
+
+#	Parse the command line.
+
+while :; do
+
+	case "$1" in
+
+		#	Mount points are given in the format: <src>:<mnt>
+
+		-m)
+			_mount "${2##*:}" $_chroot_dir/"${2%%:/*}"
+			shift 2
+		;;
+
+		-d|--debug)
+			set -x
+			shift
+		;;
+
+		-h|--help)
+			echo "${0##*/}: Run commands in a preconfigured chroot."
+			echo "Usage: ${0##*/} [-h|--help] <directory> <command> [command arguments]"
+			exit
+		;;
+
+		-*) _e "Unknown option '$1'.";;
+
+		*) break;;
+
+	esac
+
+done
+
+
+#   Check the command line.
+
+test $# -lt 2 &&
+	_e "Too few arguments."
+
+test -d "$1" ||
+	_e "'$1' is not a directory."
+
+_chroot_dir="$1"
+shift
 
 
 #   Run the command in the chroot.
