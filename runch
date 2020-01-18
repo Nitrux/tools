@@ -84,6 +84,11 @@ while :; do
 			shift 2
 		;;
 
+		-u)
+			_user_spec="--userspec=$2"
+			shift 2
+		;;
+
 		-d|--debug)
 			set -x
 			shift
@@ -118,4 +123,4 @@ shift
 
 #   Run the command in the chroot.
 
-SHELL=/bin/sh exec unshare --fork --pid chroot $_chroot_dir "$@"
+SHELL=/bin/sh exec unshare --fork --pid chroot $_user_spec $_chroot_dir "$@"
