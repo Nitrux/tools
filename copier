@@ -33,7 +33,7 @@ for item in "$@"; do
 		_e "'$item' is not a file."
 
 	mkdir -p $dst/${item%/*}
-	cp -u $f $dst/$item
+	cp -u $item $dst/$item
 done
 
 
