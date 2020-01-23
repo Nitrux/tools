@@ -83,24 +83,17 @@ install_pkgs () {
 
 
 setup_bootloader () {
+	for item in $(get_k BOOT_FILES); do
+		src=$tmp_root/${item%=>*}
+		dst=$iso_dir/${item#*=>}
+		src_path=${src%/*}
+		dst_path=${dst%/*}
 
-	sep="=>"
+		test -e $src ||
+			_e "'$src' does not exist."
 
-	for key in GRUB_FILES GRUB_THEME INITRAMFS KERNELS; do
-		for item in $(get_k $key); do
-
-			src=$tmp_root/${item%$sep*}
-			dst=$iso_dir/${item#*$sep}
-			src_path=$(dirname $src)
-			dst_path=$(dirname $dst)
-
-			test -e $src ||
-				_e "'$src' does not exist."
-
-			mkdir -p $dst_path
-			cp -r $src $dst
-
-		done
+		mkdir -p $dst_path
+		cp -r $src $dst
 	done
 }
 
