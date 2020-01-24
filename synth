@@ -19,7 +19,7 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 #	Functions.
 
-get_k () { echo "$desc" | grep "^[ \t]*$1" | cut -d ' ' -f 2-; }
+get_k () { echo "$desc" | grep "$1" | cut -d " " -f 2-; }
 
 
 setup_base () {
@@ -36,6 +36,12 @@ setup_base () {
 
 		*) pull $tmp_root $sys_base;;
 	esac
+
+	test -x "${input%/*}/prepare.sh" && {
+		cp "${input%/*}/prepare.sh" $tmp_root
+		runch $tmp_root /prepare.sh
+		rm -rf $tmp_root/prepare.sh
+	}
 }
 
 
@@ -61,7 +67,7 @@ install_pkgs () {
 
 		"")
 			echo " :: WARNING:"
-			echo "    No package manager specified. Will not install any packages."
+			echo "    No package manager specified."
 			return
 		;;
 
@@ -79,6 +85,12 @@ install_pkgs () {
 	}
 
 	runch $tmp_root $pm_i $pkgs
+
+	test -x "${input%/*}/finish.sh" && {
+		cp "${input%/*}/finish.sh" $tmp_root
+		runch $tmp_root /finish.sh
+		rm -rf $tmp_root/finish.sh
+	}
 }
 
 
@@ -116,32 +128,16 @@ test -e "$output" &&
 
 #	Start the build.
 
-preproc='
-		# Remove comments.
-
-	/^[ \t]*(#|$)/d
-
-
-		# Remove empty lines.
-
-	s/[ \t]*$//
-
-
-		# Join lines ending with ",".
-
-	:x N
-	/,$/ b x
-	/[A-Z_]$/ b x
-	s/,\n[ \t]*/ /g
-	s/([A-Z_]+)\n*[ \t]*/\1 /g
-
-
-		# Join pairs of files (src => dst).
-
-	s/[ \t]*=>[ \t]*/=>/g
-'
-
-desc=$(sed -E "$preproc" $input)
+desc=$(
+	sed -E \
+		-e ":x N" \
+		-e "/,$/ b x" \
+		-e "/[A-Z_]$/ b x" \
+		-e "s/,\n[ \t]*/ /g" \
+		-e "s/([A-Z_]+)\n*[ \t]*/\1 /g" \
+		-e "s/[ \t]*=>[ \t]*/=>/g" \
+	"$input"
+)
 
 setup_base
 

@@ -59,8 +59,19 @@ while :; do
 		;;
 
 		-h|--help)
-			echo "${0##*/}: Generate an ISO image."
-			echo "Usage: mkiso [-h] [-d] [-b] [-e] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] [-r RELEASE] <directory> <output>"
+			echo "${0##*/}: Generate an ISO image from a directory."
+			echo "Usage: ${0##*/} [flags]  <directory> <output>"
+			echo
+			echo "-h, --help       Show this help. "
+			echo "-d, --debug      Enable debugging messages."
+			echo "-b               Enable BIOS support."
+			echo "-e               Enable UEFI support."
+			echo "-V <label>       Set the filesystem label to <label>."
+			echo "-g <file>        Use <file> as a GRUB configuration file."
+			echo "-t <path>        Use <path> as a GRUB theme."
+			echo "-u <update_url>  For use with znx."
+			echo "-s <hash_url>    For use with znx."
+			echo "-r <release>     For use with znx."
 			exit
 		;;
 
