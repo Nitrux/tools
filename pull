@@ -72,8 +72,10 @@ out="$1"
 test "$img" ||
 	_e "No image provided."
 
-test -d "$out" ||
-	_e "'$out' is not a directory."
+test -e "$out" &&
+	_e "'$out' already exists."
+
+mkdir -p "$out"
 
 test -z "$tag" -o "$tag" = "$img" && tag=latest
 test -z "$owner" -o "$owner" = "$img" && img="library/$img"
