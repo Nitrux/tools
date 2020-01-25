@@ -15,12 +15,10 @@ clean () {
 		umount -f $m
 	done
 
-	for m in $_chroot_dir/*; do
+	for m in $_chroot_dir/* $_chroot_dir; do
 		mountpoint $m &&
 			umount -f $m
 	done
-
-	umount -f $_chroot_dir
 
 }
 
