@@ -63,7 +63,7 @@ while :; do
 
 		-h|--help)
 			echo "${0##*/}: Run commands in a preconfigured chroot."
-			echo "Usage: ${0##*/} [-h|--help] <directory> <command> [command arguments]"
+			echo "Usage: ${0##*/} [-h|--help] [-u user[:group]] [-m src:mnt] <directory> <command> [command arguments]"
 			exit
 		;;
 
