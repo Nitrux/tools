@@ -46,7 +46,7 @@ while :; do
 		#	Mount points are given in the format: <src>:<mnt>
 
 		-m)
-			_extra_mount_points="$_extra_mount_points $2"
+			_extra_mount_points="$_extra_mount_points ${dir##*:}"
 			shift 2
 		;;
 
