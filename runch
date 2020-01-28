@@ -46,8 +46,7 @@ while :; do
 		#	Mount points are given in the format: <src>:<mnt>
 
 		-m)
-			_mount "${2##*:}" $_chroot_dir/"${2%%:*}"
-			_extra_mount_points="$_extra_mount_points ${2%%:*}"
+			_extra_mount_points="$_extra_mount_points $2"
 			shift 2
 		;;
 
@@ -123,6 +122,13 @@ do
 		> $_chroot_dir/$f
 		mount --bind $f $_chroot_dir/$f
 	}
+done
+
+
+#	Mount user-specified mount points.
+
+for dir in $_extra_mount_points; do
+	_mount "${dir%%:*}" $_chroot_dir/"${dir##*:}"
 done
 
 

@@ -135,12 +135,11 @@ desc=$(
 		-e "/[A-Z_]$/ b x" \
 		-e "s/,\n[ \t]*/ /g" \
 		-e "s/([A-Z_]+)\n*[ \t]*/\1 /g" \
-		-e "s/[ \t]*=>[ \t]*/=>/g" \
+		-e "s/[ \t]*->[ \t]*/->/g" \
 	"$input"
 )
 
 setup_base
-
 install_pkgs
 setup_bootloader
 
