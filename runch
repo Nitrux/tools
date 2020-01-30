@@ -12,13 +12,19 @@ clean () {
 	#   Clean the created mount points.
 
 	for m in $_extra_mount_points; do
-		umount -f $m
+		umount -R -f $_chroot_dir/"${m##*:}"
 	done
 
-	for m in $_chroot_dir/* $_chroot_dir; do
-		mountpoint $m &&
-			umount -f $m
-	done
+	umount -R -f \
+		$_chroot_dir/proc \
+		$_chroot_dir/sys \
+		$_chroot_dir/dev \
+		$_chroot_dir/run \
+		$_chroot_dir/tmp \
+		$_chroot_dir/etc/hosts \
+		$_chroot_dir/etc/host.conf \
+		$_chroot_dir/etc/nsswitch.conf \
+		$_chroot_dir/etc/resolv.conf
 
 }
 
@@ -32,7 +38,7 @@ _mount () {
 	test -f "$1" && > ${2%/*}
 	test -d "$1" && mkdir -p "$2"
 
-	mount --bind "$1" "$2"
+	mount -B "$1" "$2"
 
 }
 
@@ -46,7 +52,7 @@ while :; do
 		#	Mount points are given in the format: <src>:<mnt>
 
 		-m)
-			_extra_mount_points="$_extra_mount_points ${dir##*:}"
+			_extra_mount_points="$_extra_mount_points $2"
 			shift 2
 		;;
 
@@ -77,6 +83,9 @@ done
 
 #   Check the command line.
 
+test $(id -u) -eq 0 ||
+	_e "This program needs root privileges to run."
+
 test -d "$1" ||
 	_e "'$1' is not a directory."
 
@@ -98,14 +107,14 @@ mkdir -p \
 	$_chroot_dir/run \
 	$_chroot_dir/tmp
 
-mount --bind $_chroot_dir $_chroot_dir
+#mount -B $_chroot_dir $_chroot_dir
 mount -t proc -o nosuid,noexec,nodev - $_chroot_dir/proc
 mount -t sysfs -o nosuid,noexec,nodev,ro - $_chroot_dir/sys
 mount -t devtmpfs -o mode=0755,nosuid - $_chroot_dir/dev
 mount -t devpts -o mode=0620,gid=5,nosuid,noexec - $_chroot_dir/dev/pts
 mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev - $_chroot_dir/dev/shm
 mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - $_chroot_dir/tmp
-mount --bind /run $_chroot_dir/run
+mount -B /run $_chroot_dir/run
 
 
 #   Allow network access.
@@ -120,7 +129,7 @@ for f in \
 do
 	test -f $f && {
 		> $_chroot_dir/$f
-		mount --bind $f $_chroot_dir/$f
+		mount -B $f $_chroot_dir/$f
 	}
 done
 
@@ -134,4 +143,4 @@ done
 
 #   Run the command in the chroot.
 
-SHELL=/bin/sh exec unshare --fork --pid chroot $_user_spec $_chroot_dir "$@"
+SHELL=/bin/sh unshare --fork --pid chroot $_user_spec $_chroot_dir "$@"
