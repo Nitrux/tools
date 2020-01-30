@@ -107,7 +107,6 @@ mkdir -p \
 	$_chroot_dir/run \
 	$_chroot_dir/tmp
 
-#mount -B $_chroot_dir $_chroot_dir
 mount -t proc -o nosuid,noexec,nodev - $_chroot_dir/proc
 mount -t sysfs -o nosuid,noexec,nodev,ro - $_chroot_dir/sys
 mount -t devtmpfs -o mode=0755,nosuid - $_chroot_dir/dev
