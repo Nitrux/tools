@@ -9,12 +9,6 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 clean () {
 
-	#   Clean the created mount points.
-
-	for m in $_extra_mount_points; do
-		umount -R -f $_chroot_dir/"${m##*:}"
-	done
-
 	umount -R -f \
 		$_chroot_dir/proc \
 		$_chroot_dir/sys \
@@ -25,6 +19,12 @@ clean () {
 		$_chroot_dir/etc/host.conf \
 		$_chroot_dir/etc/nsswitch.conf \
 		$_chroot_dir/etc/resolv.conf
+
+	#   Clean the user mount points.
+
+	for m in $_extra_mount_points; do
+		umount -R -f $_chroot_dir/"${m##*:}"
+	done
 
 }
 
@@ -142,4 +142,4 @@ done
 
 #   Run the command in the chroot.
 
-SHELL=/bin/sh unshare --fork --pid chroot $_user_spec $_chroot_dir "$@"
+chroot $_user_spec $_chroot_dir "$@"

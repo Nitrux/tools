@@ -17,7 +17,7 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#   Args: repository, tag, token.
+#   	Args: repository, tag, token.
 
 _get_manifest () {
 	curl -f -s \
@@ -27,7 +27,7 @@ _get_manifest () {
 }
 
 
-#   Args: digest, repository, token.
+#   	Args: digest, repository, token.
 
 _pull_layer () {
 	echo "Downloading $1."
@@ -38,14 +38,14 @@ _pull_layer () {
 }
 
 
-#   Args: repository, token. ==> Reads a manifest from stdin.
+#   	Args: repository, token. ==> Reads a manifest from stdin.
 
 _pull_layers () {
 	jq -r .layers[].digest | while read d; do _pull_layer $d $1 $2; done
 }
 
 
-#   Args: dir, repository, tag, token.
+#   	Args: dir, repository, tag, token.
 
 _pull () {
 	cd $1
@@ -59,7 +59,7 @@ _pull () {
 }
 
 
-#   Process the request.
+#   	Process the request.
 
 test $# -eq 2 ||
 	_e "Wrong number of arguments."

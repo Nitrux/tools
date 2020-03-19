@@ -17,7 +17,7 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#	Functions.
+#		Functions.
 
 get_k () { echo "$desc" | grep "$1" | cut -d " " -f 2-; }
 
@@ -52,7 +52,7 @@ install_pkgs () {
 	case "$pm" in
 		pacman)
 			pm_u="$pm --noconfirm -Syu"
-			pm_i="$pm --noconfirm -Syu"
+			pm_i="$pm --noconfirm -S"
 		;;
 
 		apt)
@@ -110,7 +110,7 @@ setup_bootloader () {
 }
 
 
-#	Setup the build.
+#		Setup the build.
 
 root_sfs=rootfs.sfs
 tmp_root=$(mktemp -d $(pwd)/.tmp.XXXX)
@@ -126,7 +126,7 @@ test -e "$output" &&
 	_e "'$output' already exists."
 
 
-#	Start the build.
+#		Start the build.
 
 desc=$(
 	sed -E \
@@ -144,7 +144,7 @@ install_pkgs
 setup_bootloader
 
 
-#	All done. Generate the artifacts.
+#		All done. Generate the artifacts.
 
 mksquashfs \
 	$tmp_root \
@@ -174,5 +174,7 @@ sha256sum $output > $output.sha256sum
 md5sum $output > $output.md5sum
 
 echo "Successfully generated '$output'."
+echo "---------------------------------"
+echo ""
 
 ls --color -l $output*
