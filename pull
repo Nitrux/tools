@@ -72,9 +72,6 @@ out="$1"
 test "$img" ||
 	_e "No image provided."
 
-test -e "$out" &&
-	_e "'$out' already exists."
-
 mkdir -p "$out"
 
 test -z "$tag" -o "$tag" = "$img" && tag=latest
