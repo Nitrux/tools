@@ -1,17 +1,17 @@
 #! /bin/sh
 
 
-#	Exit on error.
-
 set -e
 
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#	Option parsing.
+
+
+#		Option parsing.
 
 while :; do
-	case $1 in
+	case "$1" in
 
 		-V)
 			label=$2
@@ -83,7 +83,9 @@ while :; do
 done
 
 
-#	Check the command line.
+
+
+#		Check the command line.
 
 iso_dir="$1"
 output="$2"
@@ -95,7 +97,9 @@ test -d "$iso_dir" ||
 	_e "'$iso_dir' is not a directory."
 
 
-#	Copy the configuration files.
+
+
+#		Copy the configuration files.
 
 test "$config_files" && {
 	mkdir -p "$iso_dir"/boot/grub
@@ -103,7 +107,9 @@ test "$config_files" && {
 }
 
 
-#	Copy the themes.
+
+
+#		Copy the themes.
 
 test "$themes" && {
 	mkdir -p "$iso_dir"/boot/grub/themes
@@ -111,20 +117,26 @@ test "$themes" && {
 }
 
 
-#	Create the .INFO file if needed.
+
+
+#		Create the .INFO file if needed.
 
 test "$hash_url" && echo "HASH_URL $hash_url" >> "$iso_dir/.INFO"
 test "$update_url" && echo "UPDATE_URL $update_url" >> "$iso_dir/.INFO"
 test "$release" && echo "RELEASE $release" >> "$iso_dir/.INFO"
 
 
-#	GRUB2 modules.
+
+
+#		GRUB2 modules.
 
 _bios_mods="biosdisk boot linux search normal configfile part_gpt btrfs ext2 fat iso9660 loopback test keystatus gfxmenu regexp probe all_video gfxterm font echo read ls cat png jpeg halt reboot"
 _uefi_mods="efi_gop efi_uga boot linux search normal configfile part_gpt btrfs ext2 fat iso9660 loopback test keystatus gfxmenu regexp probe all_video gfxterm font echo read ls cat png jpeg halt reboot"
 
 
-#	Generate boot artifacts.
+
+
+#		Generate boot artifacts.
 
 test "$bios" = y && {
 	bios_img=bios.img
@@ -183,7 +195,9 @@ test "$uefi" = y && {
 }
 
 
-#	Generate ISO image.
+
+
+#		Generate ISO image.
 
 xorriso \
 	-as mkisofs \

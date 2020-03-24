@@ -1,5 +1,6 @@
 #! /bin/sh
 
+
 set -e
 
 case "$1" in
@@ -24,6 +25,8 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
+
+
 #	Check the command line.
 
 test $# -lt 2 &&
@@ -33,12 +36,16 @@ dst="$1"
 shift
 
 
+
+
 #	Check if arguments are files.
 
 for f in "$@"; do
 	test -f "$f" ||
 		_e "'$f' is not a file."
 done
+
+
 
 
 #	Copy the binaries.

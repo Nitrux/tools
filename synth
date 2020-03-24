@@ -16,6 +16,8 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
+
+
 #		Functions.
 
 get_k () { echo "$desc" | grep "$1" | cut -d " " -f 2-; }
@@ -95,18 +97,20 @@ install_pkgs () {
 
 setup_bootloader () {
 	for item in $(get_k BOOT_FILES); do
-		src=$tmp_root/${item%=>*}
-		dst=$iso_dir/${item#*=>}
-		src_path=${src%/*}
-		dst_path=${dst%/*}
+		src="$tmp_root/${item%=>*}"
+		dst="$iso_dir/${item#*=>}"
+		src_path="${src%/*}"
+		dst_path="${dst%/*}"
 
-		test -e $src ||
+		test -e "$src" ||
 			_e "'$src' does not exist."
 
-		mkdir -p $dst_path
-		cp -r $src $dst
+		mkdir -p "$dst_path"
+		cp -r "$src" "$dst"
 	done
 }
+
+
 
 
 #		Setup the build.
@@ -125,6 +129,8 @@ test -e "$output" &&
 	_e "'$output' already exists."
 
 
+
+
 #		Start the build.
 
 desc=$(
@@ -141,6 +147,8 @@ desc=$(
 setup_base
 install_pkgs
 setup_bootloader
+
+
 
 
 #		All done. Generate the artifacts.

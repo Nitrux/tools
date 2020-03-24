@@ -3,9 +3,11 @@
 
 set -e
 
-#   Helper functions.
-
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
+
+
+
+#		Functions.
 
 clean () {
 
@@ -28,14 +30,15 @@ clean () {
 
 }
 
+
 _mount () {
 
 	test -e "$1" ||
 		_e "'$1' does not exist."
 
-	mkdir -p ${2%/*}
+	mkdir -p "${2%/*}"
 
-	test -f "$1" && > ${2%/*}
+	test -f "$1" && > "${2%/*}"
 	test -d "$1" && mkdir -p "$2"
 
 	mount -B "$1" "$2"
@@ -43,7 +46,9 @@ _mount () {
 }
 
 
-#	Parse the command line.
+
+
+#		Parse the command line.
 
 while :; do
 
@@ -81,7 +86,9 @@ while :; do
 done
 
 
-#   Check the command line.
+
+
+#		Check the command line.
 
 test $(id -u) -eq 0 ||
 	_e "This program needs root privileges to run."
@@ -93,12 +100,16 @@ _chroot_dir="$1"
 shift
 
 
-#   Clean the chroot directory on exit.
+
+
+#		Clean the chroot directory on exit.
 
 trap clean EXIT HUP INT TERM
 
 
-#   Create the FHS mount points for the chroot.
+
+
+#		Create the FHS mount points for the chroot.
 
 mkdir -p \
 	$_chroot_dir/proc \
@@ -116,7 +127,9 @@ mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - $_chroot_dir/tmp
 mount -B /run $_chroot_dir/run
 
 
-#   Allow network access.
+
+
+#		Allow network access.
 
 mkdir -p $_chroot_dir/etc
 
@@ -133,13 +146,17 @@ do
 done
 
 
-#	Mount user-specified mount points.
+
+
+#		Mount user-specified mount points.
 
 for dir in $_extra_mount_points; do
 	_mount "${dir%%:*}" $_chroot_dir/"${dir##*:}"
 done
 
 
+
+
 #   Run the command in the chroot.
 
-chroot $_user_spec $_chroot_dir "$@"
+chroot $_user_spec "$_chroot_dir" "$@"

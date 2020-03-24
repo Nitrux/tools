@@ -1,5 +1,6 @@
 #! /bin/sh
 
+
 set -e
 
 case "$1" in
@@ -17,46 +18,46 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#   	Args: repository, tag, token.
+
+
+#   	Functions.
 
 _get_manifest () {
 	curl -f -s \
 		-H "Authorization: Bearer $3" \
 		-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-		https://index.docker.io/v2/$1/manifests/$2
+		"https://index.docker.io/v2/$1/manifests/$2"
 }
 
 
-#   	Args: digest, repository, token.
-
 _pull_layer () {
-	echo "Downloading $1."
+	echo "Downloading '$1'."
 	curl -f -# -OL \
 		-H "Authorization: Bearer $3" \
 		-H "Accept: application/vnd.docker.image.rootfs.diff.tar.gzip" \
-		https://index.docker.io/v2/$2/blobs/$1
+		"https://index.docker.io/v2/$2/blobs/$1"
 }
 
-
-#   	Args: repository, token. ==> Reads a manifest from stdin.
 
 _pull_layers () {
-	jq -r .layers[].digest | while read d; do _pull_layer $d $1 $2; done
-}
-
-
-#   	Args: dir, repository, tag, token.
-
-_pull () {
-	cd $1
-
-	_get_manifest $2 $3 $4 | _pull_layers $2 $4
-
-	for f in *; do
-		tar --force-local -xf $f
-		rm $f
+	jq -r .layers[].digest | while read d; do
+		_pull_layer "$d" "$1" "$2"
 	done
 }
+
+
+_pull () {
+	cd "$1"
+
+	_get_manifest "$2" "$3" "$4" | _pull_layers "$2" "$4"
+
+	for f in *; do
+		tar --force-local -xf "$f"
+		rm "$f"
+	done
+}
+
+
 
 
 #   	Process the request.
