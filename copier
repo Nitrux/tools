@@ -1,5 +1,6 @@
 #! /bin/sh
 
+
 set -e
 
 case "$1" in
@@ -12,9 +13,18 @@ case "$1" in
 
 	;;
 
+	-d|--debug)
+
+		set -x
+		shift
+
+	;;
+
 esac
 
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
+
+
 
 
 #	Check the command line.
@@ -22,28 +32,41 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 test $# -lt 2 &&
 	_e "Too few arguments."
 
-
-#	Copy the binaries.
-
 dst="$1"
 shift
 
-for item in "$@"; do
-	test -f "$item" ||
-		_e "'$item' is not a file."
 
-	mkdir -p $dst/${item%/*}
-	cp -u $f $dst/$item
+
+
+#	Check if arguments are files.
+
+for f in "$@"; do
+	test -f "$f" ||
+		_e "'$f' is not a file."
 done
 
 
-#	Copy the libraries. (Oh, if we had static binaries everywhere!)
 
-ldd "$@"        |
-cut -d ' ' -f 3 |
-sed '/:$/d'     |
-sort -u         |
-while read lib; do
-	mkdir -p $dst/${lib%/*}
-	cp -u $lib $dst/$lib
+
+#	Copy the binaries.
+
+for f in "$@"; do
+	mkdir -p "$dst/${f%/*}"
+	cp -u "$f" "$dst/$f"
+
+	#	Copy the libraries. (Oh, if we had static binaries everywhere!)
+
+	ldd "$f"         |
+	cut -d " " -f 3  |
+	grep -v -E       \
+		-e 'dynamic' \
+		-e '(^$|:$)' |
+	sort -u          |
+	while read l; do
+		test -f "$l" ||
+			_e "Missing dependency of '$f': '$l'."
+
+		mkdir -p "$dst/${l%/*}"
+		cp -u "$l" "$dst/$l"
+	done
 done

@@ -1,50 +1,115 @@
 #! /bin/sh
 
+
 set -e
-
-case "$1" in
-
-	-h|--help)
-
-		echo "${0##*/}: Run commands or script in a chroot."
-		echo "Usage: ${0##*/} [-h|--help] <directory> <command|-s shell script> [command arguments]"
-		exit
-
-	;;
-
-esac
 
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#   Helper functions.
+
+#		Functions.
 
 clean () {
 
-	#   Clean the system mountpoints.
+	umount -R -f \
+		$_chroot_dir/proc \
+		$_chroot_dir/sys \
+		$_chroot_dir/dev \
+		$_chroot_dir/run \
+		$_chroot_dir/tmp \
+		$_chroot_dir/etc/hosts \
+		$_chroot_dir/etc/host.conf \
+		$_chroot_dir/etc/nsswitch.conf \
+		$_chroot_dir/etc/resolv.conf
 
-	umount -f -R $_chroot_dir
+	#   Clean the user mount points.
+
+	for m in $_extra_mount_points; do
+		umount -R -f $_chroot_dir/"${m##*:}"
+	done
 
 }
 
 
-#   Handle the arguments.
+_mount () {
 
-[ $# -lt 2 ] &&
-	_e "Too few arguments."
+	test -e "$1" ||
+		_e "'$1' does not exist."
 
-[ -d "$1" ] ||
+	mkdir -p "${2%/*}"
+
+	test -f "$1" && > "${2%/*}"
+	test -d "$1" && mkdir -p "$2"
+
+	mount -B "$1" "$2"
+
+}
+
+
+
+
+#		Parse the command line.
+
+while :; do
+
+	case "$1" in
+
+		#	Mount points are given in the format: <src>:<mnt>
+
+		-m)
+			_extra_mount_points="$_extra_mount_points $2"
+			shift 2
+		;;
+
+		-u)
+			_user_spec="--userspec=$2"
+			shift 2
+		;;
+
+		-d|--debug)
+			set -x
+			shift
+		;;
+
+		-h|--help)
+			echo "${0##*/}: Run commands in a preconfigured chroot."
+			echo "Usage: ${0##*/} [-h|--help] [-u user[:group]] [-m src:mnt] <directory> <command> [command arguments]"
+			exit
+		;;
+
+		-*) _e "Unknown option '$1'.";;
+
+		*) break;;
+
+	esac
+
+done
+
+
+
+
+#		Check the command line.
+
+test $(id -u) -eq 0 ||
+	_e "This program needs root privileges to run."
+
+test -d "$1" ||
 	_e "'$1' is not a directory."
 
 _chroot_dir="$1"
 shift
 
-#   Clean the chroot directory on exit.
+
+
+
+#		Clean the chroot directory on exit.
 
 trap clean EXIT HUP INT TERM
 
 
-#   Create the essential mountpoints for the chroot.
+
+
+#		Create the FHS mount points for the chroot.
 
 mkdir -p \
 	$_chroot_dir/proc \
@@ -53,33 +118,45 @@ mkdir -p \
 	$_chroot_dir/run \
 	$_chroot_dir/tmp
 
-mount --bind $_chroot_dir $_chroot_dir
-mount -t proc -o nosuid,noexec,nodev . $_chroot_dir/proc
-mount -t sysfs -o nosuid,noexec,nodev,ro . $_chroot_dir/sys
-mount -t devtmpfs -o mode=0755,nosuid . $_chroot_dir/dev
-mount -t devpts -o mode=0620,gid=5,nosuid,noexec . $_chroot_dir/dev/pts
-mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev . $_chroot_dir/dev/shm
-mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid . $_chroot_dir/tmp
-mount --bind /run $_chroot_dir/run
+mount -t proc -o nosuid,noexec,nodev - $_chroot_dir/proc
+mount -t sysfs -o nosuid,noexec,nodev,ro - $_chroot_dir/sys
+mount -t devtmpfs -o mode=0755,nosuid - $_chroot_dir/dev
+mount -t devpts -o mode=0620,gid=5,nosuid,noexec - $_chroot_dir/dev/pts
+mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev - $_chroot_dir/dev/shm
+mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - $_chroot_dir/tmp
+mount -B /run $_chroot_dir/run
 
 
-#   Allow network access.
 
-[ -f /etc/resolv.conf ] && {
-	mkdir -p $_chroot_dir/etc
-	cp $(readlink -f /etc/resolv.conf) $_chroot_dir/etc/resolv.conf
-}
+
+#		Allow network access.
+
+mkdir -p $_chroot_dir/etc
+
+for f in \
+	/etc/hosts \
+	/etc/host.conf \
+	/etc/nsswitch.conf \
+	/etc/resolv.conf
+do
+	test -f $f && {
+		> $_chroot_dir/$f
+		mount -B $f $_chroot_dir/$f
+	}
+done
+
+
+
+
+#		Mount user-specified mount points.
+
+for dir in $_extra_mount_points; do
+	_mount "${dir%%:*}" $_chroot_dir/"${dir##*:}"
+done
+
+
 
 
 #   Run the command in the chroot.
 
-
-[ "$1" = "-s" ] && {
-	script="$2"
-	shift 2
-	cp "$script" $_chroot_dir
-	chmod +x $_chroot_dir/${script##*/}
-	SHELL=/bin/sh unshare --fork --pid chroot $_chroot_dir /${script##*/}
-	rm -r $_chroot_dir/${script##*/}
-} ||
-	SHELL=/bin/sh unshare --fork --pid chroot $_chroot_dir $@
+chroot $_user_spec "$_chroot_dir" "$@"

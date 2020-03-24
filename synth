@@ -1,6 +1,5 @@
 #! /bin/sh
 
-set -e
 
 case "$1" in
 
@@ -17,9 +16,11 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#	Functions.
 
-get_k () { echo "$desc" | grep "^[ \t]*$1" | cut -d ' ' -f 2-; }
+
+#		Functions.
+
+get_k () { echo "$desc" | grep "$1" | cut -d " " -f 2-; }
 
 
 setup_base () {
@@ -36,6 +37,12 @@ setup_base () {
 
 		*) pull $tmp_root $sys_base;;
 	esac
+
+	test -x "${input%/*}/prepare.sh" && {
+		cp "${input%/*}/prepare.sh" $tmp_root
+		runch $tmp_root /prepare.sh
+		rm -rf $tmp_root/prepare.sh
+	}
 }
 
 
@@ -46,7 +53,7 @@ install_pkgs () {
 	case "$pm" in
 		pacman)
 			pm_u="$pm --noconfirm -Syu"
-			pm_i="$pm --noconfirm -Syu"
+			pm_i="$pm --noconfirm -S"
 		;;
 
 		apt)
@@ -61,7 +68,7 @@ install_pkgs () {
 
 		"")
 			echo " :: WARNING:"
-			echo "    No package manager specified. Will not install any packages."
+			echo "    No package manager specified."
 			return
 		;;
 
@@ -79,33 +86,34 @@ install_pkgs () {
 	}
 
 	runch $tmp_root $pm_i $pkgs
+
+	test -x "${input%/*}/finish.sh" && {
+		cp "${input%/*}/finish.sh" $tmp_root
+		runch $tmp_root /finish.sh
+		rm -rf $tmp_root/finish.sh
+	}
 }
 
 
 setup_bootloader () {
+	for item in $(get_k BOOT_FILES); do
+		src="$tmp_root/${item%=>*}"
+		dst="$iso_dir/${item#*=>}"
+		src_path="${src%/*}"
+		dst_path="${dst%/*}"
 
-	sep="=>"
+		test -e "$src" ||
+			_e "'$src' does not exist."
 
-	for key in GRUB_FILES GRUB_THEME INITRAMFS KERNELS; do
-		for item in $(get_k $key); do
-
-			src=$tmp_root/${item%$sep*}
-			dst=$iso_dir/${item#*$sep}
-			src_path=$(dirname $src)
-			dst_path=$(dirname $dst)
-
-			test -e $src ||
-				_e "'$src' does not exist."
-
-			mkdir -p $dst_path
-			cp -r $src $dst
-
-		done
+		mkdir -p "$dst_path"
+		cp -r "$src" "$dst"
 	done
 }
 
 
-#	Setup the build.
+
+
+#		Setup the build.
 
 root_sfs=rootfs.sfs
 tmp_root=$(mktemp -d $(pwd)/.tmp.XXXX)
@@ -121,42 +129,29 @@ test -e "$output" &&
 	_e "'$output' already exists."
 
 
-#	Start the build.
-
-preproc='
-		# Remove comments.
-
-	/^[ \t]*(#|$)/d
 
 
-		# Remove empty lines.
+#		Start the build.
 
-	s/[ \t]*$//
-
-
-		# Join lines ending with ",".
-
-	:x N
-	/,$/ b x
-	/[A-Z_]$/ b x
-	s/,\n[ \t]*/ /g
-	s/([A-Z_]+)\n*[ \t]*/\1 /g
-
-
-		# Join pairs of files (src => dst).
-
-	s/[ \t]*=>[ \t]*/=>/g
-'
-
-desc=$(sed -E "$preproc" $input)
+desc=$(
+	sed -E \
+		-e ":x N" \
+		-e "/,$/ b x" \
+		-e "/[A-Z_]$/ b x" \
+		-e "s/,\n[ \t]*/ /g" \
+		-e "s/([A-Z_]+)\n*[ \t]*/\1 /g" \
+		-e "s/[ \t]*->[ \t]*/->/g" \
+	"$input"
+)
 
 setup_base
-
 install_pkgs
 setup_bootloader
 
 
-#	All done. Generate the artifacts.
+
+
+#		All done. Generate the artifacts.
 
 mksquashfs \
 	$tmp_root \
@@ -186,5 +181,7 @@ sha256sum $output > $output.sha256sum
 md5sum $output > $output.md5sum
 
 echo "Successfully generated '$output'."
+echo "---------------------------------"
+echo ""
 
 ls --color -l $output*

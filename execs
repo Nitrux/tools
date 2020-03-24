@@ -17,47 +17,33 @@ esac
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#	Binaries match the following rules:
-#	They are the first word in a line.
-#	They come after a "`" character.
-#	They come after a "|" character.
-#	They come after a "$(" construct.
-#	Their names start with "/", "./" or "../".
 
 
-#	Functions.
+#		Functions.
+
+_list_cmds () {
+	sed \
+		-e '/^#/d' \
+		-e '/^$/d' \
+		-e 's:^[ \t]*::' \
+		-e 's:(:\n:g' \
+		-e 's:{:\n:g' \
+		-e 's:`:\n:g' \
+		-e 's:|:\n:g' \
+		-e 's:&:\n:g' \
+		-e 's:;:\n:g' \
+		"$@"
+}
+
 
 _get_path () {
 	while read cmd; do
-		type $cmd | grep -q \
-			-e builtin \
-			-e keyword \
-			-e function \
-			-e alias \
-		&&
-			continue
-
-		which -- $cmd || true
+		which -- $cmd || :
 	done 2> /dev/null
 }
 
 
-_list_cmds () {
-	sed '
-		/^#/d
-		/^$/d
-		s:^[ \t]*::
-		s:(:\n:g
-		s:{:\n:g
-		s:`:\n:g
-		s:|:\n:g
-		s:&:\n:g
-		s:;:\n:g
-	' "$@"
-}
-
-
-_list_cmds "$@"    |
-awk '{ print $1 }' |
-sort -u            |
+_list_cmds "$@" |
+cut -d ' ' -f 1 |
+sort -u         |
 _get_path

@@ -1,17 +1,17 @@
 #! /bin/sh
 
 
-#	Exit on error.
-
 set -e
 
 _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
-#	Option parsing.
+
+
+#		Option parsing.
 
 while :; do
-	case $1 in
+	case "$1" in
 
 		-V)
 			label=$2
@@ -59,8 +59,19 @@ while :; do
 		;;
 
 		-h|--help)
-			echo "${0##*/}: Generate an ISO image."
-			echo "Usage: mkiso [-h] [-d] [-b] [-e] [-V label] [-g grub-configuration] [-t path-to-grub-theme] [-u UPDATE_URL] [-s HASH_URL] [-r RELEASE] <directory> <output>"
+			echo "${0##*/}: Generate an ISO image from a directory."
+			echo "Usage: ${0##*/} [flags]  <directory> <output>"
+			echo
+			echo "-h, --help       Show this help. "
+			echo "-d, --debug      Enable debugging messages."
+			echo "-b               Enable BIOS support."
+			echo "-e               Enable UEFI support."
+			echo "-V <label>       Set the filesystem label to <label>."
+			echo "-g <file>        Use <file> as a GRUB configuration file."
+			echo "-t <path>        Use <path> as a GRUB theme."
+			echo "-u <update_url>  For use with znx."
+			echo "-s <hash_url>    For use with znx."
+			echo "-r <release>     For use with znx."
 			exit
 		;;
 
@@ -72,7 +83,9 @@ while :; do
 done
 
 
-#	Check the command line.
+
+
+#		Check the command line.
 
 iso_dir="$1"
 output="$2"
@@ -84,7 +97,9 @@ test -d "$iso_dir" ||
 	_e "'$iso_dir' is not a directory."
 
 
-#	Copy the configuration files.
+
+
+#		Copy the configuration files.
 
 test "$config_files" && {
 	mkdir -p "$iso_dir"/boot/grub
@@ -92,7 +107,9 @@ test "$config_files" && {
 }
 
 
-#	Copy the themes.
+
+
+#		Copy the themes.
 
 test "$themes" && {
 	mkdir -p "$iso_dir"/boot/grub/themes
@@ -100,20 +117,26 @@ test "$themes" && {
 }
 
 
-#	Create the .INFO file if needed.
+
+
+#		Create the .INFO file if needed.
 
 test "$hash_url" && echo "HASH_URL $hash_url" >> "$iso_dir/.INFO"
 test "$update_url" && echo "UPDATE_URL $update_url" >> "$iso_dir/.INFO"
 test "$release" && echo "RELEASE $release" >> "$iso_dir/.INFO"
 
 
-#	GRUB2 modules.
+
+
+#		GRUB2 modules.
 
 _bios_mods="biosdisk boot linux search normal configfile part_gpt btrfs ext2 fat iso9660 loopback test keystatus gfxmenu regexp probe all_video gfxterm font echo read ls cat png jpeg halt reboot"
 _uefi_mods="efi_gop efi_uga boot linux search normal configfile part_gpt btrfs ext2 fat iso9660 loopback test keystatus gfxmenu regexp probe all_video gfxterm font echo read ls cat png jpeg halt reboot"
 
 
-#	Generate boot artifacts.
+
+
+#		Generate boot artifacts.
 
 test "$bios" = y && {
 	bios_img=bios.img
@@ -172,7 +195,9 @@ test "$uefi" = y && {
 }
 
 
-#	Generate ISO image.
+
+
+#		Generate ISO image.
 
 xorriso \
 	-as mkisofs \
