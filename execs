@@ -38,8 +38,10 @@ _list_cmds () {
 
 _get_path () {
 	while read f; do
-		which -- "$f" && continue
-		test -f "$f" && echo "$f" || true
+		{
+			which -- "$f" && continue
+			test -f "$f" && echo "$f"
+		} || true
 	done 2> /dev/null
 }
 
