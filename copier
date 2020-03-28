@@ -1,8 +1,6 @@
 #! /bin/sh
 
 
-set -e
-
 case "$1" in
 
 	-h|--help)
@@ -27,7 +25,7 @@ _e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
 
 
-#	Check the command line.
+#		Check the command line.
 
 test $# -lt 2 &&
 	_e "Too few arguments."
@@ -38,7 +36,7 @@ shift
 
 
 
-#	Check if arguments are files.
+#		Check if arguments are files.
 
 for f in "$@"; do
 	test -f "$f" ||
@@ -48,13 +46,13 @@ done
 
 
 
-#	Copy the binaries.
+#		Copy the binaries.
 
 for f in "$@"; do
 	mkdir -p "$dst/${f%/*}"
 	cp -u "$f" "$dst/$f"
 
-	#	Copy the libraries. (Oh, if we had static binaries everywhere!)
+	#	Copy the libraries.
 
 	ldd "$f"         |
 	cut -d " " -f 3  |
