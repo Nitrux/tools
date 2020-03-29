@@ -1,6 +1,5 @@
 #! /bin/sh
 
-set -e
 
 case "$1" in
 
@@ -37,8 +36,11 @@ _list_cmds () {
 
 
 _get_path () {
-	while read cmd; do
-		which -- $cmd || :
+	while read f; do
+		{
+			which -- "$f" && continue
+			test -f "$f" && echo "$f"
+		} || true
 	done 2> /dev/null
 }
 
