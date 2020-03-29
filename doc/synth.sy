@@ -1,65 +1,14 @@
-#		System base image.
-#		This is the only mandatory field.
+BASE my_distro:latest
+RELEASE eb08ac7
 
-BASE
-	my-distro
+UPDATE_URL http://repo.distro.org/stable/image.zsync
+HASH_URL http://repo.distro.org/stable/hash.md5
 
-
-#		Release version.
-
-RELEASE
-	eb08ac7
-
-
-#		URL for providing updates.
-
-UPDATE_URL
-	http://repo.distro.org/stable/image.zsync
-
-
-#		URL pointing to the hash (used by znx to check for updates).
-
-HASH_URL
-	http://repo.distro.org/stable/hash.md5
-
-
-#		Package manager in the base image.
-
-PACKAGE_MANAGER
-	apk
-
-
-#		Packages to be installed in the base image.
-
-PACKAGES
-	base,
-	latte-dock,
-	plasma,
-	foo-bar,
-	mksh
-
-
-
-
-#		The paths below should be written in the following
-#		way:
-#
-#		<source> -> <destination>.
-#
-#		<source> is relative to the root of the base image.
-#		<destination> is relative to the root of the ISO
-#		directory.
-#
-#		Trailing slashes in paths mean they are directories,
-#		and will be processed accordingly.
-
+PACKAGE_MANAGER apk
+PACKAGES base
 
 BOOT_FILES
-	/usr/share/grub/themes/nomad/ -> /boot/grub/themes/nomad/,
-	/boot/loopback.cfg -> /boot/grub/loopback.cfg,
-	/boot/initramfs -> /initramfs,
-	/boot/4.4.1-rc3 -> /boot/kernel-v4.4.1,
-	/boot/grub.cfg -> /boot/grub/grub.cfg,
-	/boot/4.2.1 -> /boot/kernel1,
-	/boot/2.6-0 -> /boot,
-	/boot/1.0.0 -> /boot
+	/boot/loopback.cfg  -> /boot/grub/loopback.cfg,
+	/boot/grub.cfg      -> /boot/grub/grub.cfg,
+	/boot/initramfs     -> /initramfs,
+	/boot/kernel-v4.4.1 -> /boot/kernel
