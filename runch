@@ -140,7 +140,7 @@ for f in \
 	/etc/resolv.conf
 do
 	test -f $f && {
-		test -f $_chroot_dir/$f || > $_chroot_dir/$f
+		>> $_chroot_dir/$f
 		mount -B $f $_chroot_dir/$f
 	}
 done
