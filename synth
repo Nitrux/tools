@@ -26,7 +26,7 @@ get_k () { echo "$desc" | grep "$1" | cut -d " " -f 2-; }
 setup_base () {
 	sys_base=$(get_k BASE)
 
-	case $sys_base in
+	case "$sys_base" in
 		@URL:*)
 			tmp=$(mktemp)
 			wget -qO $tmp "${sys_base#@URL:}"
@@ -38,11 +38,11 @@ setup_base () {
 		*) pull $tmp_root $sys_base;;
 	esac
 
-	test -x "${input%/*}/prepare.sh" && {
-		cp "${input%/*}/prepare.sh" $tmp_root
-		runch $tmp_root /prepare.sh
-		rm -rf $tmp_root/prepare.sh
-	}
+	test -x "${input%/*}/prepare.sh" || return
+
+	cp "${input%/*}/prepare.sh" $tmp_root
+	runch $tmp_root /prepare.sh
+	rm -rf $tmp_root/prepare.sh
 }
 
 
@@ -87,16 +87,16 @@ install_pkgs () {
 
 	runch $tmp_root $pm_i $pkgs
 
-	test -x "${input%/*}/finish.sh" && {
-		cp "${input%/*}/finish.sh" $tmp_root
-		runch $tmp_root /finish.sh
-		rm -rf $tmp_root/finish.sh
-	}
+	test -x "${input%/*}/finish.sh" || return
+
+	cp "${input%/*}/finish.sh" $tmp_root
+	runch $tmp_root /finish.sh
+	rm -rf $tmp_root/finish.sh
 }
 
 
 setup_bootloader () {
-	for item in $(get_k BOOT_FILES); do
+	get_k BOOT_FILES | while read item; do
 		src="$tmp_root/${item%=>*}"
 		dst="$iso_dir/${item#*=>}"
 		src_path="${src%/*}"
@@ -121,6 +121,13 @@ iso_dir=$(mktemp -d $(pwd)/.tmp.XXXX)
 
 input="${1:-synthfile}"
 output="${2:-${1%.synth}.iso}"
+
+
+
+
+#		Remove waste after the build.
+
+trap "rm -rf $tmp_root $iso_dir" EXIT HUP INT TERM
 
 test -f "$input" ||
 	_e "'$input' is not a file."
@@ -168,17 +175,17 @@ mkiso \
 	$(test $(get_k BIOS_BOOT) = on && echo "-b") \
 	$(test $(get_k UEFI_BOOT) = on && echo "-e") \
 	$iso_dir \
-	$output
+	"$output"
 
 
 zsyncmake \
-	$output \
+	"$output" \
 	-u "$(get_k UPDATE_URL)" \
-	-o $output.zsync
+	-o "$output.zsync"
 
 
-sha256sum $output > $output.sha256sum
-md5sum $output > $output.md5sum
+sha256sum "$output" > "$output.sha256sum"
+md5sum "$output" > "$output.md5sum"
 
 echo "Successfully generated '$output'."
 echo "---------------------------------"
