@@ -20,7 +20,7 @@ case "$1" in
 
 esac
 
-_e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
+_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$@" >&2; exit 1; }
 
 
 
