@@ -59,7 +59,7 @@ while :; do
 		;;
 
 		-r)
-			_rm="$_rm_f $2"
+			_rm_f="$_rm_f $2"
 			shift
 		;;
 
