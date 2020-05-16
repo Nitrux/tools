@@ -54,7 +54,6 @@ _mount () {
 #		Parse the command line.
 
 while :; do
-
 	case "$1" in
 
 		-m)
@@ -94,11 +93,9 @@ while :; do
 		;;
 
 		-*) _e "Unknown option '$1'.";;
-
 		*) break;;
 
 	esac
-
 done
 
 
