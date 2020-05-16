@@ -1,8 +1,10 @@
 #! /bin/sh
 
 
-case "$1" in
+set -e
+_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
+case "$1" in
 	-h|--help)
 		printf "%s\n" \
 			"${0##*/}: copy binaries and their dependencies to a directory." \
@@ -18,15 +20,10 @@ case "$1" in
 		set -x
 		shift
 	;;
-
 esac
 
-_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$@" >&2; exit 1; }
 
-
-
-
-#		Check the command line.
+#	check the command line.
 
 test $# -lt 2 &&
 	_e "too few arguments."
@@ -35,9 +32,7 @@ dst="$1"
 shift
 
 
-
-
-#		Check if arguments are files.
+#	check if arguments are files.
 
 for f in "$@"; do
 	test -f "$f" ||
@@ -45,15 +40,13 @@ for f in "$@"; do
 done
 
 
-
-
-#		Copy the binaries.
+#	copy the binaries.
 
 for f in "$@"; do
 	mkdir -p "$dst/${f%/*}"
 	cp -u "$f" "$dst/$f"
 
-	#	Copy the libraries.
+	#	copy the libraries.
 
 	ldd "$f"         |
 	cut -d " " -f 3  |

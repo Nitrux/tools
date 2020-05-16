@@ -1,24 +1,24 @@
 #! /bin/sh
 
 
+set -e
+_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+
+
 case "$1" in
-
 	-h|--help)
-
-		echo "${0##*/}: Print the commands called by a UNIX shell script."
-		echo "Usage: ${0##*/} [-h|--help] <script>"
+		printf "%s\n" \
+			"${0##*/}: print the external commands called by a UNIX shell script." \
+			"" \
+			"usage:" \
+			"  ${0##*/} [-h|--help]" \
+			"  ${0##*/} <script>"
 		exit
-
 	;;
-
 esac
 
-_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$@" >&2; exit 1; }
 
-
-
-
-#		Functions.
+#	functions.
 
 _list_cmds () {
 	sed \
@@ -39,13 +39,15 @@ _get_path () {
 	while read f; do
 		{
 			which -- "$f" && continue
-			test -f "$f" && echo "$f"
+			test -f "$f" && printf "%s\n" "$f"
 		} || true
 	done 2> /dev/null
 }
 
 
+#	get the list.
+
 _list_cmds "$@" |
-cut -d ' ' -f 1 |
-sort -u         |
-_get_path
+	cut -d ' ' -f 1 |
+	sort -u         |
+	_get_path

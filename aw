@@ -2,28 +2,26 @@
 
 
 set -e
+_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+
 
 case "$1" in
-
 	-h|--help)
-
-		echo "${0##*/}: Run AppImages in containers."
-		echo "Usage: ${0##*/} [-h|--help] [AppImage]"
+		printf "%s\n" \
+			"${0##*/}: run AppImages in containers." \
+			"" \
+			"usage:" \
+			"  ${0##*/} [-h|--help]" \
+			"  ${0##*/} [AppImage]"
 		exit
-
 	;;
-
 esac
 
-_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$@" >&2; exit 1; }
 
-
-
-
-#		Run the command.
+#	run the command.
 
 test $# -eq 0 &&
-	_e "Nothing to wrap."
+	_e "nothing to wrap."
 
 _app="$1"
 shift
