@@ -60,7 +60,7 @@ while :; do
 
 		-r)
 			_rm_f="$_rm_f $2"
-			shift
+			shift 2
 		;;
 
 		-d|--debug)
