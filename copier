@@ -4,18 +4,19 @@
 case "$1" in
 
 	-h|--help)
+		printf "%s\n" \
+			"${0##*/}: copy binaries and their dependencies to a directory." \
+			"" \
+			"usage:" \
+			"  ${0##*/} [-h|--help]  show this help." \
+			"  ${0##*/} <dir> <bins>" \
 
-		echo "${0##*/}: Copy binaries and their dependencies to a directory."
-		echo "Usage: ${0##*/} [-h|--help] <directory> <binaries>"
 		exit
-
 	;;
 
 	-d|--debug)
-
 		set -x
 		shift
-
 	;;
 
 esac
@@ -28,7 +29,7 @@ _e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$@" >&2; exit 1; }
 #		Check the command line.
 
 test $# -lt 2 &&
-	_e "Too few arguments."
+	_e "too few arguments."
 
 dst="$1"
 shift
@@ -62,7 +63,7 @@ for f in "$@"; do
 	sort -u          |
 	while read l; do
 		test -f "$l" ||
-			_e "Missing dependency of '$f': '$l'."
+			_e "missing dependency of '$f': '$l'."
 
 		mkdir -p "$dst/${l%/*}"
 		cp -u "$l" "$dst/$l"
