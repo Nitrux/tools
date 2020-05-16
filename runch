@@ -2,15 +2,12 @@
 
 
 set -e
-
-_e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
-
+_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 
-#		Functions.
+#	functions.
 
 clean () {
-
 	umount -R -f \
 		$_chroot_dir/proc \
 		$_chroot_dir/sys \
@@ -22,17 +19,19 @@ clean () {
 		$_chroot_dir/etc/nsswitch.conf \
 		$_chroot_dir/etc/resolv.conf
 
-	#   Clean the user mount points.
+	#	clean the user mount points.
 
 	for m in $_extra_mount_points; do
 		umount -R -f $_chroot_dir/"${m##*:}"
 	done
 
+	for d in $_rm_f; do
+		rm -rf $_chroot_dir/"$d"
+	done
 }
 
 
 _mount () {
-
 	test -e "$1" ||
 		_e "'$1' does not exist."
 
@@ -42,20 +41,13 @@ _mount () {
 	test -d "$1" && mkdir -p "$2"
 
 	mount -B "$1" "$2"
-
 }
 
 
-
-
-#		Parse the command line.
+#	parse the command line.
 
 while :; do
-
 	case "$1" in
-
-		#	Mount points are given in the format: <src>:<mnt>
-
 		-m)
 			_extra_mount_points="$_extra_mount_points $2"
 			shift 2
@@ -66,29 +58,38 @@ while :; do
 			shift 2
 		;;
 
+		-r)
+			_rm="$_rm_f $2"
+			shift
+		;;
+
 		-d|--debug)
 			set -x
 			shift
 		;;
 
 		-h|--help)
-			echo "${0##*/}: Run commands in a preconfigured chroot."
-			echo "Usage: ${0##*/} [-h|--help] [-u user[:group]] [-m src:mnt] <directory> <command> [command arguments]"
+			printf "%s\n" \
+				"${0##*/}: run commands in a preconfigured chroot." \
+				"" \
+				"usage:" \
+				"  ${0##*/} [-h|--help]  show this help." \
+				"  ${0##*/} [options] <dir> <cmd> [args]" \
+				"" \
+				"options:" \
+				"  -u user[:group]  run <cmd> as the specified user and group id." \
+				"  -m src:mnt       mount src into <dir>/mnt." \
+				"  -r file          remove file from <dir> when <cmd> finishes."
 			exit
 		;;
 
 		-*) _e "Unknown option '$1'.";;
-
 		*) break;;
-
 	esac
-
 done
 
 
-
-
-#		Check the command line.
+#	check the command line.
 
 test $(id -u) -eq 0 ||
 	_e "This program needs root privileges to run."
@@ -100,16 +101,12 @@ _chroot_dir="$1"
 shift
 
 
-
-
-#		Clean the chroot directory on exit.
+#	clean the chroot directory on exit.
 
 trap clean EXIT HUP INT TERM
 
 
-
-
-#		Create the FHS mount points for the chroot.
+#	create the FHS mount points for the chroot.
 
 mkdir -p \
 	$_chroot_dir/proc \
@@ -127,9 +124,7 @@ mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - $_chroot_dir/tmp
 mount -B /run $_chroot_dir/run
 
 
-
-
-#		Allow network access.
+#	allow network access.
 
 mkdir -p $_chroot_dir/etc
 
@@ -140,23 +135,19 @@ for f in \
 	/etc/resolv.conf
 do
 	test -f $f && {
-		test -f $_chroot_dir/$f || > $_chroot_dir/$f
+		>> $_chroot_dir/$f
 		mount -B $f $_chroot_dir/$f
 	}
 done
 
 
-
-
-#		Mount user-specified mount points.
+#	mount user-specified mount points.
 
 for dir in $_extra_mount_points; do
 	_mount "${dir%%:*}" $_chroot_dir/"${dir##*:}"
 done
 
 
-
-
-#   Run the command in the chroot.
+#	run the chroot.
 
 chroot $_user_spec "$_chroot_dir" "$@"

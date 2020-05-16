@@ -3,24 +3,23 @@
 
 set -e
 
+_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+
+
 case "$1" in
-
 	-h|--help)
-
-		echo "${0##*/}: Pull an image from DockerHub into a directory."
-		echo "Usage: pull <directory> <image>"
+		printf "%s\n" \
+			"${0##*/}: pull an image from DockerHub into a directory." \
+			"" \
+			"usage:" \
+			"  ${0##*/} pull [-h|--help]  show this help." \
+			"  ${0##*/} pull <dir> <img>"
 		exit
-
 	;;
-
 esac
 
-_e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
-
-
-
-#   	Functions.
+#	Functions.
 
 _get_manifest () {
 	curl -f -s \
@@ -48,7 +47,6 @@ _pull_layers () {
 
 _pull () {
 	cd "$1"
-
 	_get_manifest "$2" "$3" "$4" | _pull_layers "$2" "$4"
 
 	for f in *; do
@@ -58,12 +56,10 @@ _pull () {
 }
 
 
-
-
 #   	Process the request.
 
 test $# -eq 2 ||
-	_e "Wrong number of arguments."
+	_e "wrong number of arguments."
 
 tag="${2##*:}"
 img="${2%%:*}"
@@ -71,14 +67,14 @@ owner="${img%%/*}"
 out="$1"
 
 test "$img" ||
-	_e "No image provided."
+	_e "no image provided."
 
 mkdir -p "$out"
 
 test -z "$tag" -o "$tag" = "$img" && tag=latest
 test -z "$owner" -o "$owner" = "$img" && img="library/$img"
 
-echo "Trying to pull $img:$tag"
+echo "trying to pull $img:$tag"
 
 until test "$token"; do
 	token=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$img:pull" | jq -r .token)

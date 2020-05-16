@@ -1,24 +1,23 @@
 #! /bin/sh
 
 
+set -e
+_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+
 case "$1" in
-
 	-h|--help)
-
-		echo "${0##*/}: Generate the ISO image described in the given file."
-		echo "Usage: ${0##*/} <input> [output]"
+		printf "%s\n" \
+			"${0##*/}: generate the ISO image described in the given file." \
+			"" \
+			"usage:" \
+			"  ${0##*/} [-h|--help]  show this help." \
+			"  ${0##*/} <file> [img]"
 		exit
-
 	;;
-
 esac
 
-_e () { echo -e "${0##*/}: \e[31mError:\e[0m $@" >&2; exit 1; }
 
-
-
-
-#		Functions.
+#	functions.
 
 get_k () { echo "$desc" | grep "$1" | cut -d " " -f 2-; }
 
@@ -26,7 +25,7 @@ get_k () { echo "$desc" | grep "$1" | cut -d " " -f 2-; }
 setup_base () {
 	sys_base=$(get_k BASE)
 
-	case $sys_base in
+	case "$sys_base" in
 		@URL:*)
 			tmp=$(mktemp)
 			wget -qO $tmp "${sys_base#@URL:}"
@@ -34,15 +33,14 @@ setup_base () {
 		;;
 
 		@LOCAL:*) tar xf "${sys_base#@LOCAL:}" -C $tmp_root;;
-
 		*) pull $tmp_root $sys_base;;
 	esac
 
-	test -x "${input%/*}/prepare.sh" && {
-		cp "${input%/*}/prepare.sh" $tmp_root
-		runch $tmp_root /prepare.sh
-		rm -rf $tmp_root/prepare.sh
-	}
+	test -x "${input%/*}/prepare.sh" || return
+
+	cp "${input%/*}/prepare.sh" $tmp_root
+	runch $tmp_root /prepare.sh
+	rm -rf $tmp_root/prepare.sh
 }
 
 
@@ -67,36 +65,36 @@ install_pkgs () {
 		;;
 
 		"")
-			echo " :: WARNING:"
-			echo "    No package manager specified."
+			printf "%s\n" \
+				" :: warning:" \
+				"    no package manager specified."
 			return
 		;;
 
-		?*)
-			_e "Unsupported package manager '$pm'. Aborting."
-		;;
+		?*) _e "unsupported package manager '$pm'. aborting.";;
 	esac
 
 	runch $tmp_root $pm_u
 
 	test "$pkgs" || {
-		echo " :: WARNING:"
-		echo "    No additional packages were specified."
+		printf "%s\n" \
+			" :: warning:" \
+			"    no additional packages were specified."
 		return
 	}
 
 	runch $tmp_root $pm_i $pkgs
 
-	test -x "${input%/*}/finish.sh" && {
-		cp "${input%/*}/finish.sh" $tmp_root
-		runch $tmp_root /finish.sh
-		rm -rf $tmp_root/finish.sh
-	}
+	test -x "${input%/*}/finish.sh" &&
+		runch \
+			-m "${input%/*}/finish.sh":/finish.sh  \
+			-r /finish.sh \
+			$tmp_root /finish.sh
 }
 
 
 setup_bootloader () {
-	for item in $(get_k BOOT_FILES); do
+	get_k BOOT_FILES | while read item; do
 		src="$tmp_root/${item%=>*}"
 		dst="$iso_dir/${item#*=>}"
 		src_path="${src%/*}"
@@ -111,16 +109,19 @@ setup_bootloader () {
 }
 
 
-
-
-#		Setup the build.
+#	setup the build.
 
 root_sfs=rootfs.sfs
 tmp_root=$(mktemp -d $(pwd)/.tmp.XXXX)
 iso_dir=$(mktemp -d $(pwd)/.tmp.XXXX)
 
-input="$1"
-output="${2:-${1%.th}.iso}"
+input="${1:-synthfile}"
+output="${2:-${1%.synth}.iso}"
+
+
+#	remove waste after the build.
+
+trap "rm -rf $tmp_root $iso_dir" EXIT HUP INT TERM
 
 test -f "$input" ||
 	_e "'$input' is not a file."
@@ -129,15 +130,13 @@ test -e "$output" &&
 	_e "'$output' already exists."
 
 
-
-
-#		Start the build.
+#	start the build.
 
 desc=$(
 	sed -E \
 		-e ":x N" \
 		-e "/,$/ b x" \
-		-e "/[A-Z_]$/ b x" \
+		-e "/[A-Z_][ \t]*$/ b x" \
 		-e "s/,\n[ \t]*/ /g" \
 		-e "s/([A-Z_]+)\n*[ \t]*/\1 /g" \
 		-e "s/[ \t]*->[ \t]*/->/g" \
@@ -149,9 +148,7 @@ install_pkgs
 setup_bootloader
 
 
-
-
-#		All done. Generate the artifacts.
+#	all done. generate the artifacts.
 
 mksquashfs \
 	$tmp_root \
@@ -168,20 +165,21 @@ mkiso \
 	$(test $(get_k BIOS_BOOT) = on && echo "-b") \
 	$(test $(get_k UEFI_BOOT) = on && echo "-e") \
 	$iso_dir \
-	$output
+	"$output"
 
 
 zsyncmake \
-	$output \
-	-u "$(_get_k UPDATE_URL)" \
-	-o $output.zsync
+	"$output" \
+	-u "$(get_k UPDATE_URL)" \
+	-o "$output.zsync"
 
 
-sha256sum $output > $output.sha256sum
-md5sum $output > $output.md5sum
+sha256sum "$output" > "$output.sha256sum"
+md5sum "$output" > "$output.md5sum"
 
-echo "Successfully generated '$output'."
-echo "---------------------------------"
-echo ""
+printf "%s\n" \
+	"successfully generated '$output'." \
+	"---------------------------------" \
+	""
 
 ls --color -l $output*
