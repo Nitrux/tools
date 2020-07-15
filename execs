@@ -1,14 +1,13 @@
 #! /bin/sh
 
 
-set -e
-_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+err () { printf "${0##*/}: \e[31merror:\e[0m %s\n" "$*" >&2; exit 1; }
 
 
 case "$1" in
 	-h|--help)
 		printf "%s\n" \
-			"${0##*/}: print the external commands called by a UNIX shell script." \
+			"${0##*/}: print the external commands called by a shell script." \
 			"" \
 			"usage:" \
 			"  ${0##*/} [-h|--help]" \
@@ -37,17 +36,15 @@ _list_cmds () {
 
 _get_path () {
 	while read f; do
-		{
-			which -- "$f" && continue
-			test -f "$f" && printf "%s\n" "$f"
-		} || true
+		which -- "$f" && continue
+		test -f "$f" && printf "%s\n" "$f"
 	done 2> /dev/null
 }
 
 
 #	get the list.
 
-_list_cmds "$@" |
-	cut -d ' ' -f 1 |
-	sort -u         |
-	_get_path
+_list_cmds "$@" \
+	| cut -d ' ' -f 1 \
+	| sort -u \
+	| _get_path

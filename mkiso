@@ -2,7 +2,7 @@
 
 
 set -e
-_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 
 #	option parsing.
@@ -75,7 +75,7 @@ while :; do
 			exit
 		;;
 
-		-*) _e "Unknown option '$1'.";;
+		-*) err "Unknown option '$1'.";;
 		*) break;;
 	esac
 done
@@ -87,10 +87,10 @@ iso_dir="$1"
 output="$2"
 
 test $# -eq 2 ||
-	_e "Bad command line. Wrong number of arguments."
+	err "Bad command line. Wrong number of arguments."
 
 test -d "$iso_dir" ||
-	_e "'$iso_dir' is not a directory."
+	err "'$iso_dir' is not a directory."
 
 
 #	copy the configuration files.

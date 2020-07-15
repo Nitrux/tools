@@ -2,7 +2,7 @@
 
 
 set -e
-_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 
 case "$1" in
@@ -21,7 +21,7 @@ esac
 #	run the command.
 
 test $# -eq 0 &&
-	_e "nothing to wrap."
+	err "nothing to wrap."
 
 _app="$1"
 shift

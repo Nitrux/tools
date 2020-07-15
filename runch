@@ -1,39 +1,38 @@
 #! /bin/sh
 
 
-set -e
-_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 
 #	functions.
 
 clean () {
 	umount -R -f \
-		$_chroot_dir/proc \
-		$_chroot_dir/sys \
-		$_chroot_dir/dev \
-		$_chroot_dir/run \
-		$_chroot_dir/tmp \
-		$_chroot_dir/etc/hosts \
-		$_chroot_dir/etc/host.conf \
-		$_chroot_dir/etc/nsswitch.conf \
-		$_chroot_dir/etc/resolv.conf
+		$chroot_dir/proc \
+		$chroot_dir/sys \
+		$chroot_dir/dev \
+		$chroot_dir/run \
+		$chroot_dir/tmp \
+		$chroot_dir/etc/hosts \
+		$chroot_dir/etc/host.conf \
+		$chroot_dir/etc/nsswitch.conf \
+		$chroot_dir/etc/resolv.conf
 
 	#	clean the user mount points.
 
 	for m in $_extra_mount_points; do
-		umount -R -f $_chroot_dir/"${m##*:}"
+		umount -R -f $chroot_dir/"${m##*:}"
 	done
 
 	for d in $_rm_f; do
-		rm -rf $_chroot_dir/"$d"
+		rm -rf $chroot_dir/"$d"
 	done
 }
 
 
 _mount () {
 	test -e "$1" ||
-		_e "'$1' does not exist."
+		err "'$1' does not exist."
 
 	mkdir -p "${2%/*}"
 
@@ -54,7 +53,7 @@ while :; do
 		;;
 
 		-u)
-			_user_spec="--userspec=$2"
+			user_spec="--userspec=$2"
 			shift 2
 		;;
 
@@ -83,7 +82,7 @@ while :; do
 			exit
 		;;
 
-		-*) _e "Unknown option '$1'.";;
+		-*) err "Unknown option '$1'.";;
 		*) break;;
 	esac
 done
@@ -92,12 +91,12 @@ done
 #	check the command line.
 
 test $(id -u) -eq 0 ||
-	_e "This program needs root privileges to run."
+	err "This program needs root privileges to run."
 
 test -d "$1" ||
-	_e "'$1' is not a directory."
+	err "'$1' is not a directory."
 
-_chroot_dir="$1"
+chroot_dir="$1"
 shift
 
 
@@ -109,24 +108,24 @@ trap clean EXIT HUP INT TERM
 #	create the FHS mount points for the chroot.
 
 mkdir -p \
-	$_chroot_dir/proc \
-	$_chroot_dir/sys \
-	$_chroot_dir/dev \
-	$_chroot_dir/run \
-	$_chroot_dir/tmp
+	$chroot_dir/proc \
+	$chroot_dir/sys \
+	$chroot_dir/dev \
+	$chroot_dir/run \
+	$chroot_dir/tmp
 
-mount -t proc -o nosuid,noexec,nodev - $_chroot_dir/proc
-mount -t sysfs -o nosuid,noexec,nodev,ro - $_chroot_dir/sys
-mount -t devtmpfs -o mode=0755,nosuid - $_chroot_dir/dev
-mount -t devpts -o mode=0620,gid=5,nosuid,noexec - $_chroot_dir/dev/pts
-mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev - $_chroot_dir/dev/shm
-mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - $_chroot_dir/tmp
-mount -B /run $_chroot_dir/run
+mount -t proc -o nosuid,noexec,nodev - $chroot_dir/proc
+mount -t sysfs -o nosuid,noexec,nodev,ro - $chroot_dir/sys
+mount -t devtmpfs -o mode=0755,nosuid - $chroot_dir/dev
+mount -t devpts -o mode=0620,gid=5,nosuid,noexec - $chroot_dir/dev/pts
+mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev - $chroot_dir/dev/shm
+mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - $chroot_dir/tmp
+mount -B /run $chroot_dir/run
 
 
 #	allow network access.
 
-mkdir -p $_chroot_dir/etc
+mkdir -p $chroot_dir/etc
 
 for f in \
 	/etc/hosts \
@@ -135,8 +134,8 @@ for f in \
 	/etc/resolv.conf
 do
 	test -f $f && {
-		>> $_chroot_dir/$f
-		mount -B $f $_chroot_dir/$f
+		>> $chroot_dir/$f
+		mount -B $f $chroot_dir/$f
 	}
 done
 
@@ -144,10 +143,10 @@ done
 #	mount user-specified mount points.
 
 for dir in $_extra_mount_points; do
-	_mount "${dir%%:*}" $_chroot_dir/"${dir##*:}"
+	_mount "${dir%%:*}" $chroot_dir/"${dir##*:}"
 done
 
 
 #	run the chroot.
 
-chroot $_user_spec "$_chroot_dir" "$@"
+chroot $user_spec "$chroot_dir" "$@"
