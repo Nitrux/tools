@@ -30,6 +30,8 @@ _list_cmds () {
 		-e 's:|:\n:g' \
 		-e 's:&:\n:g' \
 		-e 's:;:\n:g' \
+		-e 's:exec:\n:g' \
+		-e 's:eval:\n:g' \
 		"$@"
 }
 
