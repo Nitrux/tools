@@ -20,17 +20,17 @@ esac
 #	functions.
 
 _list_cmds () {
-	sed \
-		-e '/^#/d' \
-		-e '/^$/d' \
-		-e 's:^[ \t]*::' \
-		-e 's:(:\n:g' \
-		-e 's:{:\n:g' \
-		-e 's:`:\n:g' \
-		-e 's:|:\n:g' \
-		-e 's:&:\n:g' \
-		-e 's:;:\n:g' \
-		"$@"
+	sed '/^#/d' "$@" \
+	| sed 's:(:\n:g' \
+	| sed 's:{:\n:g' \
+	| sed 's:`:\n:g' \
+	| sed 's:|:\n:g' \
+	| sed 's:&:\n:g' \
+	| sed 's:;:\n:g' \
+	| sed 's:exec:\n:g' \
+	| sed 's:eval:\n:g' \
+	| sed 's:^[ \t]*::' \
+	| sed '/^$/d'
 }
 
 
@@ -45,6 +45,6 @@ _get_path () {
 #	get the list.
 
 _list_cmds "$@" \
-	| cut -d ' ' -f 1 \
+	| awk '{ print $1 }' \
 	| sort -u \
 	| _get_path
