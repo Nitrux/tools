@@ -2,7 +2,7 @@
 
 
 set -e
-_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 case "$1" in
 	-h|--help)
@@ -71,7 +71,7 @@ install_pkgs () {
 			return
 		;;
 
-		?*) _e "unsupported package manager '$pm'. aborting.";;
+		?*) err "unsupported package manager '$pm'. aborting.";;
 	esac
 
 	runch $tmp_root $pm_u
@@ -101,7 +101,7 @@ setup_bootloader () {
 		dst_path="${dst%/*}"
 
 		test -e "$src" ||
-			_e "'$src' does not exist."
+			err "'$src' does not exist."
 
 		mkdir -p "$dst_path"
 		cp -r "$src" "$dst"
@@ -124,10 +124,10 @@ output="${2:-${1%.synth}.iso}"
 trap "rm -rf $tmp_root $iso_dir" EXIT HUP INT TERM
 
 test -f "$input" ||
-	_e "'$input' is not a file."
+	err "'$input' is not a file."
 
 test -e "$output" &&
-	_e "'$output' already exists."
+	err "'$output' already exists."
 
 
 #	start the build.

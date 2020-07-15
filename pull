@@ -1,9 +1,7 @@
 #! /bin/sh
 
 
-set -e
-
-_e () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 
 case "$1" in
@@ -59,7 +57,7 @@ _pull () {
 #   	Process the request.
 
 test $# -eq 2 ||
-	_e "wrong number of arguments."
+	err "wrong number of arguments."
 
 tag="${2##*:}"
 img="${2%%:*}"
@@ -67,7 +65,7 @@ owner="${img%%/*}"
 out="$1"
 
 test "$img" ||
-	_e "no image provided."
+	err "no image provided."
 
 mkdir -p "$out"
 
