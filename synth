@@ -1,17 +1,24 @@
 #! /bin/sh
 
 
-set -e
-err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+put () { printf "%b\n" "$@"; }
+err () { put "${0##*/}: \e[31merror:\e[0m $*" >&2; exit 1; }
 
 case "$1" in
 	-h|--help)
-		printf "%s\n" \
-			"${0##*/}: generate the ISO image described in the given file." \
+		put \
+			"synth: generate the ISO image described in the given file." \
 			"" \
 			"usage:" \
-			"  ${0##*/} [-h|--help]  show this help." \
-			"  ${0##*/} <file> [img]"
+			"  synth opts  where opts is any option." \
+			"  synth args  where args are the arguments." \
+			"" \
+			"options:" \
+			"  -h,--help   show this help." \
+			"" \
+			"arguments:" \
+			"  file img    given file as input, generate img ISO image." \
+			"              img is optional. if not passed, it will be derived from file."
 		exit
 	;;
 esac
@@ -19,7 +26,7 @@ esac
 
 #	functions.
 
-get_k () { echo "$desc" | grep "$1" | cut -d " " -f 2-; }
+get_k () { put "$desc" | grep "$1" | cut -d " " -f 2-; }
 
 
 setup_base () {
@@ -29,18 +36,18 @@ setup_base () {
 		@URL:*)
 			tmp=$(mktemp)
 			wget -qO $tmp "${sys_base#@URL:}"
-			tar xf $tmp -C $tmp_root
+			tar xf "$tmp" -C "$tmp_root"
 		;;
 
-		@LOCAL:*) tar xf "${sys_base#@LOCAL:}" -C $tmp_root;;
-		*) pull $tmp_root $sys_base;;
+		@LOCAL:*) tar xf "${sys_base#@LOCAL:}" -C "$tmp_root";;
+		*) pull "$tmp_root" "$sys_base";;
 	esac
 
 	test -x "${input%/*}/prepare.sh" || return
 
-	cp "${input%/*}/prepare.sh" $tmp_root
-	runch $tmp_root /prepare.sh
-	rm -rf $tmp_root/prepare.sh
+	cp "${input%/*}/prepare.sh" "$tmp_root"
+	runch "$tmp_root" "/prepare.sh"
+	rm -rf "$tmp_root/prepare.sh"
 }
 
 
@@ -65,13 +72,13 @@ install_pkgs () {
 		;;
 
 		"")
-			printf "%s\n" \
+			put \
 				" :: warning:" \
 				"    no package manager specified."
 			return
 		;;
 
-		?*) err "unsupported package manager '$pm'. aborting.";;
+		*) err "unsupported package manager '$pm'. aborting.";;
 	esac
 
 	runch $tmp_root $pm_u
@@ -83,13 +90,13 @@ install_pkgs () {
 		return
 	}
 
-	runch $tmp_root $pm_i $pkgs
+	runch "$tmp_root" $pm_i $pkgs
 
 	test -x "${input%/*}/finish.sh" &&
 		runch \
-			-m "${input%/*}/finish.sh":/finish.sh  \
-			-r /finish.sh \
-			$tmp_root /finish.sh
+			-m "${input%/*}/finish.sh:/finish.sh"  \
+			-r "/finish.sh" \
+			"$tmp_root" "/finish.sh"
 }
 
 
@@ -121,7 +128,7 @@ output="${2:-${1%.synth}.iso}"
 
 #	remove waste after the build.
 
-trap "rm -rf $tmp_root $iso_dir" EXIT HUP INT TERM
+trap "rm -rf '$tmp_root' '$iso_dir'" EXIT HUP INT TERM
 
 test -f "$input" ||
 	err "'$input' is not a file."
@@ -162,9 +169,9 @@ mkiso \
 	-u "$(get_k UPDATE_URL)" \
 	-s "$(get_k HASH_URL)" \
 	-r "$(get_k RELEASE)" \
-	$(test $(get_k BIOS_BOOT) = on && echo "-b") \
-	$(test $(get_k UEFI_BOOT) = on && echo "-e") \
-	$iso_dir \
+	$(test $(get_k BIOS_BOOT) = on && put "-b") \
+	$(test $(get_k UEFI_BOOT) = on && put "-e") \
+	"$iso_dir" \
 	"$output"
 
 
@@ -177,9 +184,4 @@ zsyncmake \
 sha256sum "$output" > "$output.sha256sum"
 md5sum "$output" > "$output.md5sum"
 
-printf "%s\n" \
-	"successfully generated '$output'." \
-	"---------------------------------" \
-	""
-
-ls --color -l $output*
+put "$output"*
