@@ -2,7 +2,9 @@
 
 
 set -e
-err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+
+put () { printf "%b\n" "$@"; }
+err () { put "${0##*/}: \e[31mError:\e[0m $*" >&2; exit 1; }
 
 
 #	option parsing.
@@ -10,7 +12,7 @@ err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 while :; do
 	case "$1" in
 		-V)
-			label=$2
+			label="$2"
 			shift 2
 		;;
 
@@ -55,11 +57,11 @@ while :; do
 		;;
 
 		-h|--help)
-			printf "%s\n" \
+			put \
 				"${0##*/}: generate an ISO image." \
 				"" \
 				"usage:" \
-				"  ${0##*/} [-h|--help]  show this help." \
+				"  ${0##*/} [-h|--help] show this help." \
 				"  ${0##*/} [options] <dir> <img>" \
 				"" \
 				"options:" \
@@ -111,9 +113,9 @@ test "$themes" && {
 
 #	create the .INFO file if needed.
 
-test "$hash_url" && echo "HASH_URL $hash_url" >> "$iso_dir/.INFO"
-test "$update_url" && echo "UPDATE_URL $update_url" >> "$iso_dir/.INFO"
-test "$release" && echo "RELEASE $release" >> "$iso_dir/.INFO"
+test "$hash_url" && put "HASH_URL $hash_url" >> "$iso_dir/.INFO"
+test "$update_url" && put "UPDATE_URL $update_url" >> "$iso_dir/.INFO"
+test "$release" && put "RELEASE $release" >> "$iso_dir/.INFO"
 
 
 #	GRUB2 modules.
