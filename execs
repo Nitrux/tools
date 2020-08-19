@@ -21,16 +21,16 @@ esac
 
 _list_cmds () {
 	sed '/^#/d' "$@" \
-	| sed 's:(:\n:g' \
-	| sed 's:{:\n:g' \
-	| sed 's:`:\n:g' \
-	| sed 's:|:\n:g' \
-	| sed 's:&:\n:g' \
-	| sed 's:;:\n:g' \
-	| sed 's:exec:\n:g' \
-	| sed 's:eval:\n:g' \
-	| sed 's:^[ \t]*::' \
-	| sed '/^$/d'
+		| sed 's:(:\n:g' \
+		| sed 's:{:\n:g' \
+		| sed 's:`:\n:g' \
+		| sed 's:|:\n:g' \
+		| sed 's:&:\n:g' \
+		| sed 's:;:\n:g' \
+		| sed 's:exec:\n:g' \
+		| sed 's:eval:\n:g' \
+		| sed 's:^[ \t]*::' \
+		| sed '/^$/d'
 }
 
 
