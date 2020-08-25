@@ -5,22 +5,20 @@ put () { printf "%b\n" "$@"; }
 err () { put "${0##*/}: \e[31merror:\e[0m $*" >&2; exit 1; }
 
 case "$1" in
-	-h|--help)
-		put \
-			"synth: generate the ISO image described in the given file." \
-			"" \
-			"usage:" \
-			"  synth opts  where opts is any option." \
-			"  synth args  where args are the arguments." \
-			"" \
-			"options:" \
-			"  -h,--help   show this help." \
-			"" \
-			"arguments:" \
-			"  file img    given file as input, generate img ISO image." \
-			"              img is optional. if not passed, it will be derived from file."
-		exit
-	;;
+    (-h|--help)
+        put "synth: generate the ISO image described in the given file." \
+            "" \
+            "usage:" \
+            "  synth opts  where opts is any option." \
+            "  synth args  where args are the arguments." \
+            "" \
+            "options:" \
+            "  -h,--help   show this help." \
+            "" \
+            "arguments:" \
+            "  file img    given file as input, generate img ISO image." \
+            "              img is optional. if not passed, it will be derived from file."
+        exit;;
 esac
 
 
@@ -30,89 +28,88 @@ get_k () { put "$desc" | grep "$1" | cut -d " " -f 2-; }
 
 
 setup_base () {
-	sys_base=$(get_k BASE)
+    sys_base=$(get_k BASE)
 
-	case "$sys_base" in
-		@URL:*)
-			tmp=$(mktemp)
-			wget -qO $tmp "${sys_base#@URL:}"
-			tar xf "$tmp" -C "$tmp_root"
-		;;
+    case "$sys_base" in
+        (@URL:*)
+            tmp=$(mktemp)
+            wget -qO $tmp "${sys_base#@URL:}"
+            tar xf "$tmp" -C "$tmp_root";;
 
-		@LOCAL:*) tar xf "${sys_base#@LOCAL:}" -C "$tmp_root";;
-		*) pull "$tmp_root" "$sys_base";;
-	esac
+        (@LOCAL:*)
+            tar xf "${sys_base#@LOCAL:}" -C "$tmp_root";;
 
-	test -x "${input%/*}/prepare.sh" || return
+        (*)  pull "$tmp_root" "$sys_base";;
+    esac
 
-	cp "${input%/*}/prepare.sh" "$tmp_root"
-	runch "$tmp_root" "/prepare.sh"
-	rm -rf "$tmp_root/prepare.sh"
+    test -x "${input%/*}/preinst" ||
+        return
+
+    cp "${input%/*}/preinst" "$tmp_root"
+    runch "$tmp_root" "/preinst"
+    rm -rf "$tmp_root/preinst"
 }
 
 
 install_pkgs () {
-	pm=$(get_k PACKAGE_MANAGER)
-	pkgs=$(get_k PACKAGES)
+    pm=$(get_k PACKAGE_MANAGER)
+    pkgs=$(get_k PACKAGES)
 
-	case "$pm" in
-		pacman)
-			pm_u="$pm --noconfirm -Syu"
-			pm_i="$pm --noconfirm -S"
-		;;
+    case "$pm" in
+        (pacman)
+            pm_u="$pm --noconfirm -Syu"
+            pm_i="$pm --noconfirm -S";;
 
-		apt)
-			pm_u="$pm -y upgrade"
-			pm_i="$pm -y install"
-		;;
+        (apt)
+            pm_u="$pm -y upgrade"
+            pm_i="$pm -y install";;
 
-		apk)
-			pm_u="$pm update"
-			pm_i="$pm add"
-		;;
+        (apk)
+            pm_u="$pm update"
+            pm_i="$pm add";;
 
-		"")
-			put \
-				" :: warning:" \
-				"    no package manager specified."
-			return
-		;;
+        ("")
+            put " :: warning:" \
+                "    no package manager specified."
+            return;;
 
-		*) err "unsupported package manager '$pm'. aborting.";;
-	esac
+        (*)  err "unsupported package manager '$pm'. aborting.";;
+    esac
 
-	runch $tmp_root $pm_u
+    runch $tmp_root $pm_u
 
-	test "$pkgs" || {
-		printf "%s\n" \
-			" :: warning:" \
-			"    no additional packages were specified."
-		return
-	}
+    test "$pkgs" || {
+        printf "%s\n" \
+            " :: warning:" \
+            "    no additional packages were specified."
+        return
+    }
 
-	runch "$tmp_root" $pm_i $pkgs
+    runch "$tmp_root" $pm_i $pkgs
 
-	test -x "${input%/*}/finish.sh" &&
-		runch \
-			-m "${input%/*}/finish.sh:/finish.sh"  \
-			-r "/finish.sh" \
-			"$tmp_root" "/finish.sh"
+    test -x "${input%/*}/postinst" ||
+        return
+
+    runch \
+        -m "${input%/*}/postinst:/postinst"  \
+        -r "/postinst" \
+        "$tmp_root" "/postinst"
 }
 
 
 setup_bootloader () {
-	get_k BOOT_FILES | while read item; do
-		src="$tmp_root/${item%=>*}"
-		dst="$iso_dir/${item#*=>}"
-		src_path="${src%/*}"
-		dst_path="${dst%/*}"
+    get_k BOOT_FILES | while read item; do
+        src="$tmp_root/${item%=>*}"
+        dst="$iso_dir/${item#*=>}"
+        src_path="${src%/*}"
+        dst_path="${dst%/*}"
 
-		test -e "$src" ||
-			err "'$src' does not exist."
+        test -e "$src" ||
+            err "'$src' does not exist."
 
-		mkdir -p "$dst_path"
-		cp -r "$src" "$dst"
-	done
+        mkdir -p "$dst_path"
+        cp -r "$src" "$dst"
+    done
 }
 
 
@@ -123,7 +120,7 @@ tmp_root=$(mktemp -d $(pwd)/.tmp.XXXX)
 iso_dir=$(mktemp -d $(pwd)/.tmp.XXXX)
 
 input="${1:-synthfile}"
-output="${2:-${1%.synth}.iso}"
+output="${2:-img.iso}"
 
 
 #	remove waste after the build.
@@ -131,23 +128,23 @@ output="${2:-${1%.synth}.iso}"
 trap "rm -rf '$tmp_root' '$iso_dir'" EXIT HUP INT TERM
 
 test -f "$input" ||
-	err "'$input' is not a file."
+    err "'$input' is not a file."
 
 test -e "$output" &&
-	err "'$output' already exists."
+    err "'$output' already exists."
 
 
 #	start the build.
 
 desc=$(
-	sed -E \
-		-e ":x N" \
-		-e "/,$/ b x" \
-		-e "/[A-Z_][ \t]*$/ b x" \
-		-e "s/,\n[ \t]*/ /g" \
-		-e "s/([A-Z_]+)\n*[ \t]*/\1 /g" \
-		-e "s/[ \t]*->[ \t]*/->/g" \
-	"$input"
+    sed -E \
+        -e ":x N" \
+        -e "/,$/ b x" \
+        -e "/[A-Z_][ \t]*$/ b x" \
+        -e "s/,\n[ \t]*/ /g" \
+        -e "s/([A-Z_]+)\n*[ \t]*/\1 /g" \
+        -e "s/[ \t]*->[ \t]*/->/g" \
+    "$input"
 )
 
 setup_base
@@ -158,27 +155,27 @@ setup_bootloader
 #	all done. generate the artifacts.
 
 mksquashfs \
-	$tmp_root \
-	$iso_dir/$root_sfs \
-	-b 1M \
-	-comp xz \
-	-no-progress
+    $tmp_root \
+    $iso_dir/$root_sfs \
+    -b 1M \
+    -comp xz \
+    -no-progress
 
 
 mkiso \
-	-u "$(get_k UPDATE_URL)" \
-	-s "$(get_k HASH_URL)" \
-	-r "$(get_k RELEASE)" \
-	$(test $(get_k BIOS_BOOT) = on && put "-b") \
-	$(test $(get_k UEFI_BOOT) = on && put "-e") \
-	"$iso_dir" \
-	"$output"
+    -u "$(get_k UPDATE_URL)" \
+    -s "$(get_k HASH_URL)" \
+    -r "$(get_k RELEASE)" \
+    $(test $(get_k BIOS_BOOT) = on && put "-b") \
+    $(test $(get_k UEFI_BOOT) = on && put "-e") \
+    "$iso_dir" \
+    "$output"
 
 
 zsyncmake \
-	"$output" \
-	-u "$(get_k UPDATE_URL)" \
-	-o "$output.zsync"
+    "$output" \
+    -u "$(get_k UPDATE_URL)" \
+    -o "$output.zsync"
 
 
 sha256sum "$output" > "$output.sha256sum"

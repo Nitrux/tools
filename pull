@@ -5,59 +5,58 @@ err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 
 case "$1" in
-	-h|--help)
-		printf "%s\n" \
-			"${0##*/}: pull an image from DockerHub into a directory." \
-			"" \
-			"usage:" \
-			"  ${0##*/} pull [-h|--help]  show this help." \
-			"  ${0##*/} pull <dir> <img>"
-		exit
-	;;
+    (-h|--help)
+        printf "%s\n" \
+            "${0##*/}: pull an image from DockerHub into a directory." \
+            "" \
+            "usage:" \
+            "  ${0##*/} pull [-h|--help]  show this help." \
+            "  ${0##*/} pull <dir> <img>"
+        exit;;
 esac
 
 
 #	Functions.
 
 _get_manifest () {
-	curl -f -s \
-		-H "Authorization: Bearer $3" \
-		-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-		"https://index.docker.io/v2/$1/manifests/$2"
+    curl -f -s \
+        -H "Authorization: Bearer $3" \
+        -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+        "https://index.docker.io/v2/$1/manifests/$2"
 }
 
 
 _pull_layer () {
-	echo "Downloading '$1'."
-	curl -f -# -OL \
-		-H "Authorization: Bearer $3" \
-		-H "Accept: application/vnd.docker.image.rootfs.diff.tar.gzip" \
-		"https://index.docker.io/v2/$2/blobs/$1"
+    echo "Downloading '$1'."
+    curl -f -# -OL \
+        -H "Authorization: Bearer $3" \
+        -H "Accept: application/vnd.docker.image.rootfs.diff.tar.gzip" \
+        "https://index.docker.io/v2/$2/blobs/$1"
 }
 
 
 _pull_layers () {
-	jq -r .layers[].digest | while read d; do
-		_pull_layer "$d" "$1" "$2"
-	done
+    jq -r .layers[].digest | while read d; do
+        _pull_layer "$d" "$1" "$2"
+    done
 }
 
 
 _pull () {
-	cd "$1"
-	_get_manifest "$2" "$3" "$4" | _pull_layers "$2" "$4"
+    cd "$1"
+    _get_manifest "$2" "$3" "$4" | _pull_layers "$2" "$4"
 
-	for f in *; do
-		tar --force-local -xf "$f"
-		rm "$f"
-	done
+    for f in *; do
+        tar --force-local -xf "$f"
+        rm "$f"
+    done
 }
 
 
 #   	Process the request.
 
 test $# -eq 2 ||
-	err "wrong number of arguments."
+    err "wrong number of arguments."
 
 tag="${2##*:}"
 img="${2%%:*}"
@@ -65,7 +64,7 @@ owner="${img%%/*}"
 out="$1"
 
 test "$img" ||
-	err "no image provided."
+    err "no image provided."
 
 mkdir -p "$out"
 
@@ -75,7 +74,7 @@ test -z "$owner" -o "$owner" = "$img" && img="library/$img"
 echo "trying to pull $img:$tag"
 
 until test "$token"; do
-	token=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$img:pull" | jq -r .token)
+    token=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$img:pull" | jq -r .token)
 done
 
 _pull "$out" "$img" "$tag" "$token"

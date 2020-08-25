@@ -4,7 +4,7 @@
 err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 case "$1" in
-	-h|--help)
+	(-h|--help)
 		printf "%s\n" \
 			"${0##*/}: copy binaries and their dependencies to a directory." \
 			"the list of binaries will be read from stdin." \
@@ -15,7 +15,7 @@ case "$1" in
 		exit
 	;;
 
-	-d|--debug)
+	(-d|--debug)
 		set -x
 		shift
 	;;
