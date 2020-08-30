@@ -1,83 +1,73 @@
 #! /bin/sh
 
 
-set -e
-err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+put () { printf "%b\n" "$@"; }
+err () { put "${0##*/}: \e[31mError:\e[0m $*" >&2; exit 1; }
 
 
 #	option parsing.
 
 while :; do
-	case "$1" in
-		-V)
-			label=$2
-			shift 2
-		;;
+    case "$1" in
+        (-V)
+            label="$2"
+            shift 2;;
 
-		-g)
-			config_files="$config_files $2"
-			shift 2
-		;;
+        (-g)
+            config_files="$config_files $2"
+            shift 2;;
 
-		-t)
-			themes="$themes $2"
-			shift 2
-		;;
+        (-t)
+            themes="$themes $2"
+            shift 2;;
 
-		-u)
-			update_url="$2"
-			shift 2
-		;;
+        (-u)
+            update_url="$2"
+            shift 2;;
 
-		-s)
-			hash_url="$2"
-			shift 2
-		;;
+        (-s)
+            hash_url="$2"
+            shift 2;;
 
-		-r)
-			release="$2"
-			shift 2
-		;;
+        (-r)
+            release="$2"
+            shift 2;;
 
-		-b)
-			bios=y
-			shift
-		;;
+        (-b)
+            bios=y
+            shift;;
 
-		-e)
-			uefi=y
-			shift
-		;;
+        (-e)
+            uefi=y
+            shift;;
 
-		-d|--debug)
-			set -x
-			shift
-		;;
+        (-d|--debug)
+            set -x
+            shift;;
 
-		-h|--help)
-			printf "%s\n" \
-				"${0##*/}: generate an ISO image." \
-				"" \
-				"usage:" \
-				"  ${0##*/} [-h|--help]  show this help." \
-				"  ${0##*/} [options] <dir> <img>" \
-				"" \
-				"options:" \
-				"  -d, --debug    enable debugging messages." \
-				"  -b             enable BIOS support." \
-				"  -e             enable UEFI support." \
-				"  -V label       use label as filesystem label." \
-				"  -g file        use file as a GRUB configuration file." \
-				"  -t path        use path as a GRUB theme." \
-				"  -u update_url  znx's update_url." \
-				"  -s hash_url    znx's hash_url." \
-				"  -r release     znx's release."
-			exit
-		;;
+        (-h|--help)
+            put \
+                "${0##*/}: generate an ISO image." \
+                "" \
+                "usage:" \
+                "  ${0##*/} [-h|--help] show this help." \
+                "  ${0##*/} [options] <dir> <img>" \
+                "" \
+                "options:" \
+                "  -d, --debug    enable debugging messages." \
+                "  -b             enable BIOS support." \
+                "  -e             enable UEFI support." \
+                "  -V label       use label as filesystem label." \
+                "  -g file        use file as a GRUB configuration file." \
+                "  -t path        use path as a GRUB theme." \
+                "  -u update_url  znx's update_url." \
+                "  -s hash_url    znx's hash_url." \
+                "  -r release     znx's release."
+            exit;;
 
-		-*) err "Unknown option '$1'.";;
-		*) break;;
-	esac
+        (-*)    err "unknown option '$1'.";;
+        (*)     set -- "$@" "$1";;
+    esac
 done
 
 
@@ -87,33 +77,33 @@ iso_dir="$1"
 output="$2"
 
 test $# -eq 2 ||
-	err "Bad command line. Wrong number of arguments."
+    err "Bad command line. Wrong number of arguments."
 
 test -d "$iso_dir" ||
-	err "'$iso_dir' is not a directory."
+    err "'$iso_dir' is not a directory."
 
 
 #	copy the configuration files.
 
 test "$config_files" && {
-	mkdir -p "$iso_dir"/boot/grub
-	cp $config_files "$iso_dir"/boot/grub
+    mkdir -p "$iso_dir"/boot/grub
+    cp $config_files "$iso_dir"/boot/grub
 }
 
 
 #	copy the themes.
 
 test "$themes" && {
-	mkdir -p "$iso_dir"/boot/grub/themes
-	cp -r $themes "$iso_dir"/boot/grub/themes
+    mkdir -p "$iso_dir"/boot/grub/themes
+    cp -r $themes "$iso_dir"/boot/grub/themes
 }
 
 
 #	create the .INFO file if needed.
 
-test "$hash_url" && echo "HASH_URL $hash_url" >> "$iso_dir/.INFO"
-test "$update_url" && echo "UPDATE_URL $update_url" >> "$iso_dir/.INFO"
-test "$release" && echo "RELEASE $release" >> "$iso_dir/.INFO"
+test "$hash_url" && put "HASH_URL $hash_url" >> "$iso_dir/.INFO"
+test "$update_url" && put "UPDATE_URL $update_url" >> "$iso_dir/.INFO"
+test "$release" && put "RELEASE $release" >> "$iso_dir/.INFO"
 
 
 #	GRUB2 modules.
@@ -125,70 +115,70 @@ _uefi_mods="efi_gop efi_uga boot linux search normal configfile part_gpt btrfs e
 #	generate boot artifacts.
 
 test "$bios" = y && {
-	bios_img=bios.img
+    bios_img=bios.img
 
-	grub-mkimage \
-		-O i386-pc-eltorito \
-		-o "$iso_dir/$bios_img" \
-		-p /boot/grub \
-		$_bios_mods
+    grub-mkimage \
+        -O i386-pc-eltorito \
+        -o "$iso_dir/$bios_img" \
+        -p /boot/grub \
+        $_bios_mods
 
-	bios_opts="
-		-eltorito-alt-boot
-		-b bios.img
-		-no-emul-boot
-		-graft-points bios.img=$iso_dir/$bios_img
-		-boot-load-size 4
-		-boot-info-table
-		-c boot.cat
-		--grub2-boot-info
-		--grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img
-	"
+    bios_opts="
+        -eltorito-alt-boot
+        -b bios.img
+        -no-emul-boot
+        -graft-points bios.img=$iso_dir/$bios_img
+        -boot-load-size 4
+        -boot-info-table
+        -c boot.cat
+        --grub2-boot-info
+        --grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img
+    "
 }
 
 
 test "$uefi" = y && {
-	efi_img=$(mktemp)
+    efi_img=$(mktemp)
 
-	grub-mkimage \
-		-O x86_64-efi \
-		-o "$efi_img" \
-		-p /boot/grub \
-		$_uefi_mods
+    grub-mkimage \
+        -O x86_64-efi \
+        -o "$efi_img" \
+        -p /boot/grub \
+        $_uefi_mods
 
-	export MTOOLS_SKIP_CHECK=1
-	mkfs.vfat \
-		-C "$iso_dir/efi.img" \
-		$(( $(wc -c < $efi_img) / 1024 + 511))
+    export MTOOLS_SKIP_CHECK=1
+    mkfs.vfat \
+        -C "$iso_dir/efi.img" \
+        $(( $(wc -c < $efi_img) / 1024 + 511))
 
-	mmd \
-		-i "$iso_dir/efi.img" \
-		efi \
-		efi/boot
+    mmd \
+        -i "$iso_dir/efi.img" \
+        efi \
+        efi/boot
 
-	mcopy \
-		-i "$iso_dir/efi.img" \
-		"$efi_img" \
-		::efi/boot/bootx64.efi
+    mcopy \
+        -i "$iso_dir/efi.img" \
+        "$efi_img" \
+        ::efi/boot/bootx64.efi
 
-	uefi_opts="
-		-eltorito-alt-boot
-		-no-emul-boot
-		-e efi.img
-		-graft-points efi.img=$iso_dir/efi.img
-		-append_partition 2 0xef $iso_dir/efi.img
-	"
+    uefi_opts="
+        -eltorito-alt-boot
+        -no-emul-boot
+        -e efi.img
+        -graft-points efi.img=$iso_dir/efi.img
+        -append_partition 2 0xef $iso_dir/efi.img
+    "
 }
 
 
 #	generate ISO image.
 
 xorriso \
-	-as mkisofs \
-	-iso-level 3 \
-	-full-iso9660-filenames \
-	-volid "$label" \
-	-o "$output" \
-	"$iso_dir" \
-	$bios_opts \
-	$uefi_opts
+    -as mkisofs \
+    -iso-level 3 \
+    -full-iso9660-filenames \
+    -volid "$label" \
+    -o "$output" \
+    "$iso_dir" \
+    $bios_opts \
+    $uefi_opts
