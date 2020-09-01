@@ -74,10 +74,11 @@ while :; do
                 "                           to pass to the command." \
                 "" \
                 "options:" \
-                "  -h,--help                show this help." \
-                "  -u user[:group]          run cmd as the specified user and group id." \
-                "  -m src:mnt               mount src into <dir>/mnt." \
-                "  -r file                  on exit, remove file from chroot directory."
+                "  -h, --help       show this help." \
+                "  -d, --debug      enable debugging messges." \
+                "  -m src:mnt       mount src into <dir>/mnt." \
+                "  -u user[:group]  run cmd as the specified user and group id." \
+                "  -r file          on exit, remove file from chroot directory."
             exit;;
 
         (-*) err "unknown option '$1'.";;
@@ -147,4 +148,4 @@ done
 
 #	run the chroot.
 
-chroot "$user_spec" "$chroot_dir" "$@"
+chroot ${user_spec:+"$user_spec"} -- "$chroot_dir" "$@"
