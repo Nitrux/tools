@@ -46,8 +46,7 @@ while :; do
             shift;;
 
         (-h|--help)
-            put \
-                "${0##*/}: generate an ISO image." \
+            put "${0##*/}: generate an ISO image." \
                 "" \
                 "usage:" \
                 "  ${0##*/} [-h|--help] show this help." \
@@ -66,7 +65,7 @@ while :; do
             exit;;
 
         (-*)    err "unknown option '$1'.";;
-        (*)     set -- "$@" "$1";;
+        (*)     break;;
     esac
 done
 
@@ -86,16 +85,16 @@ test -d "$iso_dir" ||
 #	copy the configuration files.
 
 test "$config_files" && {
-    mkdir -p "$iso_dir"/boot/grub
-    cp $config_files "$iso_dir"/boot/grub
+    mkdir -p "$iso_dir/boot/grub"
+    cp $config_files "$iso_dir/boot/grub"
 }
 
 
 #	copy the themes.
 
 test "$themes" && {
-    mkdir -p "$iso_dir"/boot/grub/themes
-    cp -r $themes "$iso_dir"/boot/grub/themes
+    mkdir -p "$iso_dir/boot/grub/themes"
+    cp -r $themes "$iso_dir/boot/grub/themes"
 }
 
 
@@ -149,7 +148,7 @@ test "$uefi" = y && {
     export MTOOLS_SKIP_CHECK=1
     mkfs.vfat \
         -C "$iso_dir/efi.img" \
-        $(( $(wc -c < $efi_img) / 1024 + 511))
+        $(($(wc -c < $efi_img) / 1024 + 511))
 
     mmd \
         -i "$iso_dir/efi.img" \
