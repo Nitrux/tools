@@ -65,7 +65,7 @@ while :; do
             exit;;
 
         (-*)    err "unknown option '$1'.";;
-        (*)     set -- "$@" "$1";;
+        (*)     break;;
     esac
 done
 
