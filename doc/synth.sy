@@ -8,7 +8,7 @@ PACKAGE_MANAGER apk
 PACKAGES base
 
 BOOT_FILES
-	/boot/loopback.cfg  -> /boot/grub/loopback.cfg,
-	/boot/grub.cfg      -> /boot/grub/grub.cfg,
-	/boot/initramfs     -> /initramfs,
-	/boot/kernel-v4.4.1 -> /boot/kernel
+    /boot/loopback.cfg  -> /boot/grub/loopback.cfg,
+    /boot/grub.cfg      -> /boot/grub/grub.cfg,
+    /boot/initramfs     -> /initramfs,
+    /boot/kernel-v4.4.1 -> /boot/kernel
