@@ -1,28 +1,28 @@
 #! /bin/sh
 
 
-put () { printf "%b\n" "$@"; }
-err () { put "${0##*/}: \e[31merror:\e[0m $*" >&2; exit 1; }
-
 case "$1" in
-    (-h|--help)
+    ( -h | --help )
         put "synth: generate the ISO image described in the given file." \
             "" \
-            "usage:" \
+            "Usage:" \
             "  synth opts  where opts is any option." \
             "  synth args  where args are the arguments." \
             "" \
-            "options:" \
+            "Options:" \
             "  -h,--help   show this help." \
             "" \
-            "arguments:" \
+            "Arguments:" \
             "  file img    given file as input, generate img ISO image." \
             "              img is optional. if not passed, it will be derived from file."
         exit;;
 esac
 
 
-#	functions.
+#   Functions.
+
+put () { printf "%b\n" "$@"; }
+err () { put "${0##*/}: \e[31mError:\e[0m $*" >&2; exit 1; }
 
 get_k () { put "$desc" | grep "$1" | cut -d " " -f 2-; }
 
@@ -31,15 +31,13 @@ setup_base () {
     sys_base=$(get_k BASE)
 
     case "$sys_base" in
-        (@URL:*)
-            tmp=$(mktemp)
-            wget -qO $tmp "${sys_base#@URL:}"
-            tar xf "$tmp" -C "$tmp_root";;
+        ( @URL:* )      tmp=$(mktemp)
+                        wget -qO $tmp "${sys_base#@URL:}"
+                        tar xf "$tmp" -C "$tmp_root";;
 
-        (@LOCAL:*)
-            tar xf "${sys_base#@LOCAL:}" -C "$tmp_root";;
+        ( @LOCAL:* )    tar xf "${sys_base#@LOCAL:}" -C "$tmp_root";;
 
-        (*)  pull "$tmp_root" "$sys_base";;
+        ( * )           pull "$tmp_root" "$sys_base";;
     esac
 
     test -x "${input%/*}/preinst" ||
@@ -56,24 +54,24 @@ install_pkgs () {
     pkgs=$(get_k PACKAGES)
 
     case "$pm" in
-        (pacman)
+        ( pacman )
             pm_u="$pm --noconfirm -Syu"
             pm_i="$pm --noconfirm -S";;
 
-        (apt)
+        ( apt )
             pm_u="$pm -y upgrade"
             pm_i="$pm -y install";;
 
-        (apk)
+        ( apk )
             pm_u="$pm update"
             pm_i="$pm add";;
 
-        ("")
+        ( "" )
             put " :: warning:" \
                 "    no package manager specified."
             return;;
 
-        (*)  err "unsupported package manager '$pm'. aborting.";;
+        ( * )  err "unsupported package manager '$pm'. aborting.";;
     esac
 
     runch $tmp_root $pm_u
@@ -113,7 +111,7 @@ setup_bootloader () {
 }
 
 
-#	setup the build.
+#   Start the build.
 
 root_sfs=rootfs.sfs
 tmp_root=$(mktemp -d $(pwd)/.tmp.XXXX)
@@ -122,11 +120,6 @@ iso_dir=$(mktemp -d $(pwd)/.tmp.XXXX)
 input="${1:-synthfile}"
 output="${2:-img.iso}"
 
-
-#	remove waste after the build.
-
-trap "rm -rf '$tmp_root' '$iso_dir'" EXIT HUP INT TERM
-
 test -f "$input" ||
     err "'$input' is not a file."
 
@@ -134,7 +127,9 @@ test -e "$output" &&
     err "'$output' already exists."
 
 
-#	start the build.
+#   Remove waste after the build.
+
+trap "rm -rf '$tmp_root' '$iso_dir'" EXIT HUP INT TERM
 
 desc=$(
     sed -E \
@@ -152,33 +147,29 @@ install_pkgs
 setup_bootloader
 
 
-#	all done. generate the artifacts.
+#   All done. Generate the artifacts.
 
-mksquashfs \
-    $tmp_root \
-    $iso_dir/$root_sfs \
-    -b 1M \
-    -comp xz \
-    -no-progress
-
-
-mkiso \
-    -u "$(get_k UPDATE_URL)" \
-    -s "$(get_k HASH_URL)" \
-    -r "$(get_k RELEASE)" \
-    $(test $(get_k BIOS_BOOT) = on && put "-b") \
-    $(test $(get_k UEFI_BOOT) = on && put "-e") \
-    "$iso_dir" \
-    "$output"
+mksquashfs $tmp_root \
+           $iso_dir/$root_sfs \
+           -b 1M \
+           -comp xz \
+           -no-progress
 
 
-zsyncmake \
-    "$output" \
-    -u "$(get_k UPDATE_URL)" \
-    -o "$output.zsync"
+mkiso -u "$(get_k UPDATE_URL)" \
+      -s "$(get_k HASH_URL)" \
+      -r "$(get_k RELEASE)" \
+      $(test $(get_k BIOS_BOOT) = on && put "-b") \
+      $(test $(get_k UEFI_BOOT) = on && put "-e") \
+      "$iso_dir" \
+      "$output"
+
+
+zsyncmake "$output" \
+          -u "$(get_k UPDATE_URL)" \
+          -o "$output.zsync"
 
 
 sha256sum "$output" > "$output.sha256sum"
-md5sum "$output" > "$output.md5sum"
 
 put "$output"*

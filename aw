@@ -1,13 +1,7 @@
 #! /bin/sh
 
 
-set -e
-err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
-
-
-#	run the command.
-
-test $# = 0 && err "nothing to wrap."
+test $# = 0 && exit 1
 
 cmd="$1"
 shift

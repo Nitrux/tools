@@ -1,37 +1,36 @@
 #! /bin/sh
 
 
-err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
-
-
 case "$1" in
-    (-h|--help)
+    ( -h | --help )
         printf "%s\n" \
-            "${0##*/}: pull an image from DockerHub into a directory." \
+            "pull: Fetch an image from DockerHub into a directory." \
             "" \
-            "usage:" \
-            "  ${0##*/} pull [-h|--help]  show this help." \
-            "  ${0##*/} pull <dir> <img>"
+            "Usage:" \
+            "  pull [-h|--help]  show this help." \
+            "  pull <dir> <img>  Fetch img into dir."
         exit;;
 esac
 
 
-#	Functions.
+#   Functions.
+
+err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 _get_manifest () {
     curl -f -s \
-        -H "Authorization: Bearer $3" \
-        -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-        "https://index.docker.io/v2/$1/manifests/$2"
+         -H "Authorization: Bearer $3" \
+         -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+         "https://index.docker.io/v2/$1/manifests/$2"
 }
 
 
 _pull_layer () {
     echo "Downloading '$1'."
     curl -f -# -OL \
-        -H "Authorization: Bearer $3" \
-        -H "Accept: application/vnd.docker.image.rootfs.diff.tar.gzip" \
-        "https://index.docker.io/v2/$2/blobs/$1"
+         -H "Authorization: Bearer $3" \
+         -H "Accept: application/vnd.docker.image.rootfs.diff.tar.gzip" \
+         "https://index.docker.io/v2/$2/blobs/$1"
 }
 
 
@@ -53,7 +52,7 @@ _pull () {
 }
 
 
-#   	Process the request.
+#   Process the request.
 
 test $# -eq 2 ||
     err "wrong number of arguments."
@@ -64,14 +63,14 @@ owner="${img%%/*}"
 out="$1"
 
 test "$img" ||
-    err "no image provided."
+    err "No image provided."
 
 mkdir -p "$out"
 
 test -z "$tag" -o "$tag" = "$img" && tag=latest
 test -z "$owner" -o "$owner" = "$img" && img="library/$img"
 
-echo "trying to pull $img:$tag"
+echo "Pulling $img:$tag..."
 
 until test "$token"; do
     token=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$img:pull" | jq -r .token)

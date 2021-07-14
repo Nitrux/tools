@@ -1,33 +1,26 @@
 #! /bin/sh
 
 
+#   Functions.
+
 put () { printf "%b\n" "$@"; }
-err () { put "${0##*/}: \e[31merror:\e[0m $*" >&2; exit 1; }
-
-
-#	functions.
+err () { put "${0##*/}: \e[31mError:\e[m $*" >&2; exit 1; }
 
 clean () {
-    umount -Rf \
-        "$chroot_dir/proc" \
-        "$chroot_dir/sys" \
-        "$chroot_dir/dev" \
-        "$chroot_dir/run" \
-        "$chroot_dir/tmp" \
-        "$chroot_dir/etc/hosts" \
-        "$chroot_dir/etc/host.conf" \
-        "$chroot_dir/etc/nsswitch.conf" \
-        "$chroot_dir/etc/resolv.conf"
+    umount -Rf "$chroot_dir/proc" \
+               "$chroot_dir/sys" \
+               "$chroot_dir/dev" \
+               "$chroot_dir/run" \
+               "$chroot_dir/tmp" \
+               "$chroot_dir/etc/hosts" \
+               "$chroot_dir/etc/host.conf" \
+               "$chroot_dir/etc/nsswitch.conf" \
+               "$chroot_dir/etc/resolv.conf"
 
-    #	clean the user mount points.
+    #   Clean the user mount points.
 
-    for m in $_extra_mount_points; do
-        umount -Rf "$chroot_dir/${m##*:}"
-    done
-
-    for d in $_rm_f; do
-        rm -rf "$chroot_dir/$d"
-    done
+    for m in $_extra_mount_points; do umount -Rf "$chroot_dir/${m##*:}"; done
+    for d in $_rm_f; do rm -rf "$chroot_dir/$d"; done
 }
 
 
@@ -44,53 +37,41 @@ mnt () {
 }
 
 
-#	parse the command line.
+#   Parse the command line.
 
 while :; do
     case "$1" in
-        (-m)
-            _extra_mount_points="$_extra_mount_points $2"
-            shift 2;;
+        ( -m )  _extra_mount_points="$_extra_mount_points $2"; shift 2;;
+        ( -u )  user_spec="--userspec=$2"; shift 2;;
+        ( -r )  _rm_f="$_rm_f $2"; shift 2;;
 
-        (-u)
-            user_spec="--userspec=$2"
-            shift 2;;
+        ( -d | --debug )    set -x; shift;;
 
-        (-r)
-            _rm_f="$_rm_f $2"
-            shift 2;;
-
-        (-d|--debug)
-            set -x
-            shift;;
-
-        (-h|--help)
-            put \
-                "runch: run commands in a preconfigured chroot." \
-                "" \
-                "usage:" \
-                "  runch opts dir cmd args  where opts are any options, dir is the chroot directory," \
-                "                           cmd is the command to be ran, and args are any arguments" \
-                "                           to pass to the command." \
-                "" \
-                "options:" \
-                "  -h, --help       show this help." \
-                "  -d, --debug      enable debugging messges." \
-                "  -m src:mnt       mount src into <dir>/mnt." \
-                "  -u user[:group]  run cmd as the specified user and group id." \
-                "  -r file          on exit, remove file from chroot directory."
+        ( -h | --help )     put "runch: run commands in a preconfigured chroot." \
+                                "" \
+                                "usage:" \
+                                "  runch opts dir cmd args  where opts are any options, dir is the chroot directory," \
+                                "                           cmd is the command to be ran, and args are any arguments" \
+                                "                           to pass to the command." \
+                                "" \
+                                "options:" \
+                                "  -h, --help       show this help." \
+                                "  -d, --debug      enable debugging messges." \
+                                "  -m src:mnt       mount src into <dir>/mnt." \
+                                "  -u user[:group]  run cmd as the specified user and group id." \
+                                "  -r file          on exit, remove file from chroot directory."
             exit;;
 
-        (-*) err "unknown option '$1'.";;
-        (*)  break;;
+        ( -* )  err "Unknown option '$1'.";;
+        ( * )   break;;
     esac
 done
 
 
-#	check the command line.
+#   Check the command line.
 
 test $(id -u) -eq 0 ||
-    err "this program needs root privileges to run."
+    err "This program needs root privileges to run."
 
 test -d "$1" ||
     err "'$1' is not a directory."
@@ -99,19 +80,18 @@ chroot_dir="$1"
 shift
 
 
-#	clean the chroot directory on exit.
+#   Clean the chroot directory on exit.
 
 trap clean EXIT HUP INT TERM
 
 
-#	create the FHS mount points for the chroot.
+#   Create the FHS mount-points for the chroot.
 
-mkdir -p \
-    "$chroot_dir/proc" \
-    "$chroot_dir/sys" \
-    "$chroot_dir/dev" \
-    "$chroot_dir/run" \
-    "$chroot_dir/tmp"
+mkdir -p "$chroot_dir/proc" \
+         "$chroot_dir/sys" \
+         "$chroot_dir/dev" \
+         "$chroot_dir/run" \
+         "$chroot_dir/tmp"
 
 mount -t proc -o nosuid,noexec,nodev - "$chroot_dir/proc"
 mount -t sysfs -o nosuid,noexec,nodev,ro - "$chroot_dir/sys"
@@ -122,7 +102,7 @@ mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - "$chroot_dir/tmp"
 mount -B /run "$chroot_dir/run"
 
 
-#	allow network access.
+#   Allow network access.
 
 mkdir -p "$chroot_dir/etc"
 
@@ -139,13 +119,11 @@ do
 done
 
 
-#	mount user-specified mount points.
+#   Mount user-specified mount-points.
 
-for dir in $_extra_mount_points; do
-    mnt "${dir%%:*}" "$chroot_dir/${dir##*:}"
-done
+for dir in $_extra_mount_points; do mnt "${dir%%:*}" "$chroot_dir/${dir##*:}"; done
 
 
-#	run the chroot.
+#   chroot.
 
 chroot ${user_spec:+"$user_spec"} -- "$chroot_dir" "$@"
