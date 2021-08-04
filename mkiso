@@ -59,9 +59,9 @@ test -d "$iso_dir" ||
 
 #   Copy the configuration files.
 
-test "$config_files" && {
+test "$cfg_files" && {
     mkdir -p "$iso_dir/boot/grub"
-    cp $config_files "$iso_dir/boot/grub"
+    cp $cfg_files "$iso_dir/boot/grub"
 }
 
 
