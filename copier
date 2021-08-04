@@ -1,17 +1,16 @@
 #! /bin/sh
 
 
-err () { printf "${0##*/}: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+err () { printf "copier: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
 
 case "$1" in
     ( -h | --help )
         printf "%s\n" \
-            "${0##*/}: Copy binaries and their dependencies to a directory." \
-            "the list of binaries will be read from stdin." \
+            "copier: Copy binaries and their dependencies to a directory." \
             "" \
-            "usage:" \
-            "  ${0##*/} [-h|--help]  show this help." \
-            "  ${0##*/} <dir>"
+            "Usage:" \
+            "  copier [-h|--help]   Show this help." \
+            "  copier <dir>         Copy the list of binaries read from stdin into <dir>."
         exit;;
 
     ( -d | --debug )
@@ -51,7 +50,7 @@ for f in "$@"; do
     | sort -u \
     | while read l; do
         test -f "$l" ||
-            err "missing dependency of '$f': '$l'."
+            err "Missing dependency of '$f': '$l'."
 
         mkdir -p "$dst/${l%/*}"
         cp -u "$l" "$dst/$l"

@@ -4,11 +4,11 @@
 case "$1" in
     ( -h | --help )
         printf "%s\n" \
-            "${0##*/}: Print the external commands called by a shell script." \
+            "execs: Print the external commands called by a shell script." \
             "" \
             "usage:" \
-            "  ${0##*/} [-h|--help]" \
-            "  ${0##*/} <scripts>"
+            "  execs [-h|--help]    Show this help." \
+            "  execs <scripts>      Print all external commands called by <scripts>."
 
         exit;;
 esac

@@ -4,7 +4,7 @@
 #   Functions.
 
 put () { printf "%b\n" "$@"; }
-err () { put "${0##*/}: \e[31mError:\e[m $*" >&2; exit 1; }
+err () { put "runch: \e[31mError:\e[m $*" >&2; exit 1; }
 
 clean () {
     umount -Rf "$chroot_dir/proc" \
@@ -47,19 +47,19 @@ while :; do
 
         ( -d | --debug )    set -x; shift;;
 
-        ( -h | --help )     put "runch: run commands in a preconfigured chroot." \
+        ( -h | --help )     put "runch: Run commands with chroot in a preconfigured directory." \
                                 "" \
-                                "usage:" \
-                                "  runch opts dir cmd args  where opts are any options, dir is the chroot directory," \
+                                "Usage:" \
+                                "  runch opts dir cmd args  Where opts are any options, dir is the chroot directory," \
                                 "                           cmd is the command to be ran, and args are any arguments" \
                                 "                           to pass to the command." \
                                 "" \
-                                "options:" \
-                                "  -h, --help       show this help." \
-                                "  -d, --debug      enable debugging messges." \
-                                "  -m src:mnt       mount src into <dir>/mnt." \
-                                "  -u user[:group]  run cmd as the specified user and group id." \
-                                "  -r file          on exit, remove file from chroot directory."
+                                "Options:" \
+                                "  -h, --help       Show this help." \
+                                "  -d, --debug      Enable debugging messges." \
+                                "  -m src:mnt       Mount src into <dir>/mnt." \
+                                "  -u user[:group]  Run cmd as the specified user and group id." \
+                                "  -r file          On exit, remove file from chroot directory."
             exit;;
 
         ( -* )  err "Unknown option '$1'.";;
@@ -126,4 +126,4 @@ for dir in $_extra_mount_points; do mnt "${dir%%:*}" "$chroot_dir/${dir##*:}"; d
 
 #   chroot.
 
-chroot ${user_spec:+"$user_spec"} -- "$chroot_dir" "$@"
+chroot $user_spec -- "$chroot_dir" "$@"

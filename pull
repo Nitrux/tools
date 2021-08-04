@@ -7,8 +7,8 @@ case "$1" in
             "pull: Fetch an image from DockerHub into a directory." \
             "" \
             "Usage:" \
-            "  pull [-h|--help]  show this help." \
-            "  pull <dir> <img>  Fetch img into dir."
+            "  pull [-h|--help]     Show this help." \
+            "  pull dir img         Fetch img into dir."
         exit;;
 esac
 
@@ -72,8 +72,6 @@ test -z "$owner" -o "$owner" = "$img" && img="library/$img"
 
 echo "Pulling $img:$tag..."
 
-until test "$token"; do
-    token=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$img:pull" | jq -r .token)
-done
+until token=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$img:pull" | jq -r .token); do :; done
 
 _pull "$out" "$img" "$tag" "$token"
