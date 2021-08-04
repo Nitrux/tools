@@ -2,7 +2,17 @@
 
 Tools for building our stuff.
 
-`./<command> -h` will give you information about any of these programs.
+```
+aw          # Run AppImages inside Docker containers.
+copier      # Copy binaries and their dependencies to a directory.
+execs       # Print the external commands called by the given shell scripts.
+mkiso       # Generate bootable ISO images (supports both BIOS and UEFI).
+pull        # Download a Docker image as a directory.
+runch       # Run commands in a preconfigured chroot.
+synth       # Generate ISO images from a configuration file.
+```
+
+The `-h` will will give you full information about any of these programs.
 
 # Issues
 If you find problems with the contents of this repository, please create an issue.
