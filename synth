@@ -125,6 +125,10 @@ test -f "$input" ||
 
 trap "rm -rf '$tmp_root' '$iso_dir'" EXIT HUP INT TERM
 
+
+#   TODO FIXME
+#   Stop doing parsing, use bcf instead.
+
 desc=$(
     sed -E \
         -e ":x N" \

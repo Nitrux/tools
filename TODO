@@ -1,0 +1,26 @@
+  New capabilities for synth:
+
+Use bcf (https://github.com/luislavaire/bcf)
+    No more configuration file parsing.
+
+synthfile
+    This will be the main configuration file, here you can
+    configure what kind of image you want, which distribution,
+    which packages and so on.
+
+.cache/
+    If this directory exists, it is used as package cache
+    directory for the builds. This directory is bind
+    mounted into the image at build time to speed up
+    building images.
+
+overlay/
+    If this directory exists, then synth will copy everything
+    inside it into the images built. You can place arbitrary
+    directory hierarchies in here. This is the best way to drop
+    static files into the image, or override default ones.
+
+post (executable)
+    If this executable script exists, it is invoked inside the
+    image (inside a runch invocation) and can adjust the image
+    at a very late point.
