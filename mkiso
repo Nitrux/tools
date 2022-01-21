@@ -133,7 +133,7 @@ test "$uefi" = y && {
         -no-emul-boot
         -e efi.img
         -graft-points efi.img=$iso_dir/efi.img
-        -append_partition 2 0xef $iso_dir/efi.img
+        -append_partition 1 0xef $iso_dir/efi.img
     "
 }
 
@@ -147,4 +147,9 @@ xorriso -as mkisofs \
         -o "$output" \
         "$iso_dir" \
         $bios_opts \
-        $uefi_opts
+        $uefi_opts \
+        -hfsplus \
+        -hfsplus-serial-no fc4d1567781ece66 \
+        -hfsplus-block-size 512 \
+        -apm-block-size 512
+
