@@ -151,5 +151,5 @@ xorriso -as mkisofs \
         -hfsplus \
         -hfsplus-serial-no fc4d1567781ece66 \
         -hfsplus-block-size 512 \
-        -apm-block-size 512 \
+        -apm-block-size 512
 
