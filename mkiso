@@ -149,7 +149,7 @@ xorriso -as mkisofs \
         $bios_opts \
         $uefi_opts \
         -hfsplus \
-        -hfsplus-serial-no i5t7n5k2l1u6u5r8 \
+        -hfsplus-serial-no fc4d1567781ece66 \
         -hfsplus-block-size 512 \
         -apm-block-size 512 \
-        
+
