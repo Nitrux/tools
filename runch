@@ -1,7 +1,7 @@
 #! /bin/sh
 
 
-#   Functions.
+# Functions.
 
 put () { printf "%b\n" "$@"; }
 err () { put "runch: \e[31mError:\e[m $*" >&2; exit 1; }
@@ -17,7 +17,7 @@ clean () {
                "$chroot_dir/etc/nsswitch.conf" \
                "$chroot_dir/etc/resolv.conf"
 
-    #   Clean the user mount points.
+    # Clean the user mount points.
 
     for m in $_extra_mount_points; do umount -Rf "$chroot_dir/${m##*:}"; done
     for d in $_rm_f; do rm -rf "$chroot_dir/$d"; done
@@ -37,7 +37,7 @@ mnt () {
 }
 
 
-#   Parse the command line.
+# Parse the command line.
 
 while :; do
     case "$1" in
@@ -68,7 +68,7 @@ while :; do
 done
 
 
-#   Check the command line.
+# Check the command line.
 
 test $(id -u) -eq 0 ||
     err "This program needs root privileges to run."
@@ -79,13 +79,19 @@ test -d "$1" ||
 chroot_dir="$1"
 shift
 
+which chroot ||
+    err "Could not find chroot, aborting."
 
-#   Clean the chroot directory on exit.
+put "chroot_dir: $chroot_dir"
+put "cmd: $*"
+
+
+# Clean the chroot directory on exit.
 
 trap clean EXIT HUP INT TERM
 
 
-#   Create the FHS mount-points for the chroot.
+# Create the FHS mount-points for the chroot.
 
 mkdir -p "$chroot_dir/proc" \
          "$chroot_dir/sys" \
@@ -102,7 +108,7 @@ mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - "$chroot_dir/tmp"
 mount -B /run "$chroot_dir/run"
 
 
-#   Allow network access.
+# Allow network access.
 
 mkdir -p "$chroot_dir/etc"
 
@@ -119,11 +125,11 @@ do
 done
 
 
-#   Mount user-specified mount-points.
+# Mount user-specified mount-points.
 
 for dir in $_extra_mount_points; do mnt "${dir%%:*}" "$chroot_dir/${dir##*:}"; done
 
 
-#   chroot.
+# chroot.
 
 chroot $user_spec -- "$chroot_dir" "$@"

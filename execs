@@ -19,19 +19,17 @@ esac
 err () { printf "${0##*/}: \e[31merror:\e[0m %s\n" "$*" >&2; exit 1; }
 
 _list_cmds () {
-    sed '''
-        /^#/d
-        /^$/d
-        /^[ \t]*/d
-        s:(:\n:g
-        s:{:\n:g
-        s:`:\n:g
-        s:|:\n:g
-        s:&:\n:g
-        s:;:\n:g
-        s:exec:\n:g
-        s:eval:\n:g
-    ''' "$@"
+    sed '/^#/d
+         /^$/d
+         /^[ \t]*/d
+         s:(:\n:g
+         s:{:\n:g
+         s:`:\n:g
+         s:|:\n:g
+         s:&:\n:g
+         s:;:\n:g
+         s:exec:\n:g
+         s:eval:\n:g' "$@"
 }
 
 _get_path () {
