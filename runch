@@ -118,10 +118,11 @@ for f in \
     "/etc/nsswitch.conf" \
     "/etc/resolv.conf"
 do
-    test -f "$f" && {
-        >> "$chroot_dir/$f"
-        mount -B "$f" "$chroot_dir/$f"
-    }
+    test -f "$chroot_dir/$f" &&
+        continue
+
+    test -f "$f" &&
+        cp "$f" "$chroot_dir/$f"
 done
 
 
