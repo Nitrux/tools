@@ -103,7 +103,7 @@ mount -t proc -o nosuid,noexec,nodev - "$chroot_dir/proc"
 mount -t sysfs -o nosuid,noexec,nodev,ro - "$chroot_dir/sys"
 mount -t devtmpfs -o mode=0755,nosuid - "$chroot_dir/dev"
 mount -t devpts -o mode=0620,gid=5,nosuid,noexec - "$chroot_dir/dev/pts"
-mount -t tmpfs -t tmpfs -o mode=1777,nosuid,nodev - "$chroot_dir/dev/shm"
+mount -t tmpfs -o mode=1777,nosuid,nodev - "$chroot_dir/dev/shm"
 mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid - "$chroot_dir/tmp"
 mount -B /run "$chroot_dir/run"
 
