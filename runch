@@ -1,19 +1,14 @@
 #!/usr/bin/env sh
 
+
 put() { printf "%b\n" "$@"; }
 err() { put "runch: \033[31mError:\033[m $*" >&2; exit 1; }
-
-
-# --  Fail early on undefined _extra_mount_points or _rm_f.
-
-_extra_mount_points=""
-_rm_f=""
 
 
 # -- Functions.
 
 clean() {
-    readonly _fs_mounts="/proc /sys /dev/pts /dev/shm /dev /run /tmp \
+    _fs_mounts="/proc /sys /dev/pts /dev/shm /dev /run /tmp \
     /etc/hosts /etc/host.conf /etc/nsswitch.conf /etc/resolv.conf"
 
     for p in $_fs_mounts; do
@@ -84,6 +79,12 @@ Options:\n
             ;;
     esac
 done
+
+
+# --  Normalize whitespace in parsed arguments.
+
+_rm_f="$(echo "$_rm_f" | xargs)"
+_extra_mount_points="$(echo "$_extra_mount_points" | xargs)"
 
 
 # -- Pre-checks.
