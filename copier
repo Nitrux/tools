@@ -1,7 +1,7 @@
-#! /bin/sh
+#!/usr/bin/env sh
 
 
-err () { printf "copier: \e[31mError:\e[0m %s\n" "$*" >&2; exit 1; }
+err() { put "runch: \033[31mError:\033[m $*" >&2; exit 1; }
 
 case "$1" in
     ( -h | --help )
@@ -19,7 +19,7 @@ case "$1" in
 esac
 
 
-#   Check the command line.
+# -- Check the command line.
 
 test $# -lt 2 &&
     err "Too few arguments."
@@ -28,7 +28,7 @@ dst="$1"
 shift
 
 
-#   Check if the arguments are files.
+# -- Check if the arguments are files.
 
 for f in "$@"; do
     test -f "$f" ||
@@ -48,7 +48,7 @@ for f in "$@"; do
     | cut -d " " -f 3  \
     | grep -vE -e 'dynamic'	-e '(^$|:$)' \
     | sort -u \
-    | while read l; do
+    | while read -r l; do
         test -f "$l" ||
             err "Missing dependency of '$f': '$l'."
 

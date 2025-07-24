@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/usr/bin/env sh
 
 
 case "$1" in
@@ -14,7 +14,7 @@ case "$1" in
 esac
 
 
-#   Functions.
+# -- Functions.
 
 err () { printf "${0##*/}: \e[31merror:\e[0m %s\n" "$*" >&2; exit 1; }
 
@@ -33,7 +33,7 @@ _list_cmds () {
 }
 
 _get_path () {
-    while read f; do
+    while read -r f; do
         type "$f" | grep -Eq 'function|builtin' && continue
         which -- "$f" && continue
         test -f "$f" && printf "%s\n" "$f"
@@ -41,7 +41,7 @@ _get_path () {
 }
 
 
-#   Get the list.
+# -- Get the list.
 
 _list_cmds "$@" \
     | awk '{print $1}' \
