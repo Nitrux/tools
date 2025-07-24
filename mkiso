@@ -14,7 +14,7 @@ while :; do
     case "$1" in
         -V )  label="$2"; shift 2;;
         -g )  cfg_files="$cfg_files $2"; shift 2;;
-        -t )  themes="$themes $2"; shift 2;;
+        -t ) themes="${themes:+$themes }$2"; shift 2;;
         -b )  bios=y; shift;;
         -e )  uefi=y; shift;;
         -d | --debug ) set -x; shift;;
