@@ -130,6 +130,12 @@ mkdir -p "$chroot_dir/etc"
 for f in hosts host.conf nsswitch.conf resolv.conf; do
     if [ ! -s "$chroot_dir/etc/$f" ]; then
         cp -L "/etc/$f" "$chroot_dir/etc/$f"
+    else
+        case "$f" in
+            resolv.conf)
+                cp -L "/etc/resolv.conf" "$chroot_dir/etc/resolv.conf"
+                ;;
+        esac
     fi
 done
 
