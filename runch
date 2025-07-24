@@ -30,7 +30,7 @@ clean() {
 
     for d in $_rm_f; do
         case "$d" in
-            ""|.|..|*/..|/*) err "FATAL: Unsafe path '$d' in -r option — refusing to rm -rf." ;;
+            ""|.|..|*/..|/*) err "FATAL: Unsafe path '$d' in -r option — only relative paths like 'some/dir' are allowed." ;;
         esac
         rm -rf -- "${chroot_dir:?FATAL: chroot_dir is unset or null}/${d:?FATAL: path to remove is unset or null}"
     done
