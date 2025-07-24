@@ -41,8 +41,8 @@ done
 
 # -- Check the command line.
 
-iso_dir="$1"
-output="$2"
+iso_dir=$(realpath "$1")
+output=$(realpath "$2")
 
 test $# -eq 2 || err "Bad command line. Wrong number of arguments."
 test -d "$iso_dir" || err "'$iso_dir' is not a directory."
@@ -73,12 +73,11 @@ if [ "$bios" = y ]; then
                  -p /boot/grub \
                  biosdisk boot linux search normal configfile part_gpt btrfs ext2 fat iso9660 loopback test keystatus gfxmenu regexp probe all_video gfxterm font echo read ls cat png jpeg halt reboot
 
-    # shellcheck disable=SC2089
     bios_opts="
         -eltorito-alt-boot
         -b bios.img
         -no-emul-boot
-        -graft-points bios.img=\"$iso_dir/$bios_img\"
+        -graft-points bios.img=$iso_dir/$bios_img
         -boot-load-size 4
         -boot-info-table
         -c boot.cat
@@ -100,13 +99,12 @@ if [ "$uefi" = y ]; then
     mmd -i "$iso_dir/efi.img" efi efi/boot
     mcopy -i "$iso_dir/efi.img" "$efi_img" ::efi/boot/bootx64.efi
 
-    # shellcheck disable=SC2089
     uefi_opts="
         -eltorito-alt-boot
         -no-emul-boot
         -e efi.img
-        -graft-points efi.img=\"$iso_dir/efi.img\"
-        -append_partition 1 0xef \"$iso_dir/efi.img\"
+        -graft-points efi.img="$iso_dir/efi.img"
+        -append_partition 1 0xef "$iso_dir/efi.img"
     "
 fi
 
@@ -120,7 +118,6 @@ fi
 
 # -- Generate ISO image.
 
-# shellcheck disable=SC2090
 # shellcheck disable=SC2086
 
 xorriso -as mkisofs \
