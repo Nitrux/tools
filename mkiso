@@ -41,11 +41,10 @@ done
 
 # -- Check the command line.
 
-iso_dir=$(realpath "$1")
-output=$(realpath "$2")
-
 test $# -eq 2 || err "Bad command line. Wrong number of arguments."
-test -d "$iso_dir" || err "'$iso_dir' is not a directory."
+
+iso_dir=$(realpath "$1") || err "'$1' is not a valid directory."
+output=$2
 
 
 # -- Copy the configuration files.
