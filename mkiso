@@ -51,7 +51,9 @@ output=$2
 
 if [ -n "$cfg_files" ]; then
     mkdir -p "$iso_dir/boot/grub"
-    cp "$cfg_files" "$iso_dir/boot/grub"
+
+    # shellcheck disable=SC2086
+    cp -- $cfg_files "$iso_dir/boot/grub"
 fi
 
 
