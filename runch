@@ -127,7 +127,10 @@ mount -B /run "$chroot_dir/run"
 
 mkdir -p "$chroot_dir/etc"
 for f in hosts host.conf nsswitch.conf resolv.conf; do
-    [ -f "$chroot_dir/etc/$f" ] || cp "/etc/$f" "$chroot_dir/etc/$f"
+    if [ ! -s "$chroot_dir/etc/$f" ]; then
+    cp "/etc/$f" "$chroot_dir/etc/$f"
+fi
+
 done
 
 
