@@ -15,7 +15,9 @@ clean() {
 
         mp="$chroot_dir$p"
         if mountpoint -q "$mp"; then
-            fuser -k "$mp" 2>/dev/null
+            if lsof "$mp" > /dev/null 2>&1; then
+                fuser -k "$mp" > /dev/null 2>&1
+            fi
             umount -lRf "$mp" 2>/dev/null
         fi
     done
@@ -23,7 +25,9 @@ clean() {
     for m in $_extra_mount_points; do
         mp="$chroot_dir/${m##*:}"
         if mountpoint -q "$mp"; then
-            fuser -k "$mp" 2>/dev/null
+            if lsof "$mp" > /dev/null 2>&1; then
+                fuser -k "$mp" > /dev/null 2>&1
+            fi
             umount -lRf "$mp" 2>/dev/null
         fi
     done
